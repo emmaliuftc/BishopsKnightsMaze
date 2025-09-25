@@ -1,0 +1,42 @@
+import time
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(8, GPIO.OUT)
+GPIO.setup(10, GPIO.OUT)
+GPIO.setup(12, GPIO.OUT)
+GPIO.setup(16, GPIO.OUT)
+
+	
+def counter_clockwise():
+	p = GPIO.PWM(12, 1000)
+	
+	# change speed (0.0 to 100.0)
+	p.start(100)
+	
+	while True:
+		GPIO.output(10, GPIO.HIGH)
+		GPIO.output(8, GPIO.LOW)
+		GPIO.output(16, GPIO.LOW)
+		time.sleep(5)
+		break
+
+
+def clockwise():
+	p = GPIO.PWM(12, 1000)
+	
+	# change speed (0.0 to 100.0)
+	p.start(100)
+	
+	while True:
+		GPIO.output(10, GPIO.LOW)
+		GPIO.output(8, GPIO.HIGH)
+		GPIO.output(16, GPIO.LOW)
+		time.sleep(5)
+		break
+		
+def main():
+	counter_clockwise()
+	time.sleep(1)
+	clockwise()
+
+main()
