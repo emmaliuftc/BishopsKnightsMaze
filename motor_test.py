@@ -71,6 +71,7 @@ def drive(vel, t=0):
         packet_handler.write4ByteTxRx(port, MOTOR_LF, 104, vel)
         packet_handler.write4ByteTxRx(port, MOTOR_RB, 104, -vel)
         packet_handler.write4ByteTxRx(port, MOTOR_RF, 104, -vel)
+        packet_handler.write4ByteTxRx(port, GEAR, 104, vel)
     else:
         drive(vel)
         time.sleep(t)
