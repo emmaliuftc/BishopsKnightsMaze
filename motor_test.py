@@ -106,5 +106,7 @@ def measure():
     return positions
     
 set_op_mode()
-drive(150)
+turn(150)
+x=input()
+stop()
 
