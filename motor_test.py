@@ -108,5 +108,7 @@ def measure():
 set_op_mode()
 turn(150)
 x=input()
+turn(-150)
+x = input()
 stop()
 
