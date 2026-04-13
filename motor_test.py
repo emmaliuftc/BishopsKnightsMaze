@@ -21,6 +21,7 @@ GEAR = 5
 
 # If you have more/fewer than 4 motors make sure to adjust this list
 motors = [MOTOR_LB, MOTOR_LF, MOTOR_RB, MOTOR_RF, GEAR]
+tires = [MOTOR_LB, MOTOR_LF, MOTOR_RB, MOTOR_RF]
 
 # This identifies the USB port where the motor controller is attached
 port = PortHandler('/dev/ttyUSB0')
@@ -58,10 +59,13 @@ while read_success < len(motors):
 
 
 def set_op_mode():
-    for motor in motors:
-        packet_handler.write1ByteTxRx(port, motor, 64, 0)
-        packet_handler.write1ByteTxRx(port, motor, 11, 1)
-        packet_handler.write1ByteTxRx(port, motor, 64, 1)
+    packet_handler.write1ByteTxRx(port, GEAR, 64, 0)
+    packet_handler.write1ByteTxRx(port, GEAR, 11, 3)
+    packet_handler.write1ByteTxRx(port, GEAR, 64, 1)
+    for tire in tires:
+        packet_handler.write1ByteTxRx(port, tire, 64, 0)
+        packet_handler.write1ByteTxRx(port, tire, 11, 1)
+        packet_handler.write1ByteTxRx(port, tire, 64, 1)
     time.sleep(0.1)
    
 
@@ -76,6 +80,18 @@ def drive(vel, t=0):
         drive(vel)
         time.sleep(t)
         stop()
+
+def drop():
+    # print("moving to zero)")
+    # packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
+    # time.sleep(2)
+    position, result, error = packet_handler.read4ByteTxRx(port, GEAR, 132)
+    print(position, result, error)
+    print("moving to pos+409613")
+    new_position = (position + 315)%4096
+    packet_handler.write4ByteTxRx(port, GEAR, 116, new_position)
+    # packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
+    
 
 def stop():
     drive(0)
@@ -106,9 +122,19 @@ def measure():
     return positions
     
 set_op_mode()
-turn(150)
-x=input()
-turn(-150)
-x = input()
-stop()
 
+def test_drive():
+    x = input("D for drive, T for turn")
+    if x.upper()=="D":
+        drive(150)
+        x = input()
+        drive(-150)
+    else:
+        turn(150)
+        x = input()
+        turn(-150)
+    x=input()
+    stop()
+
+
+drop()
