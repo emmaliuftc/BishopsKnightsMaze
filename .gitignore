@@ -2,3 +2,5 @@
 
 *env/**
 tca/**
+
+__pycache__/
