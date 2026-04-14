@@ -27,37 +27,37 @@ port = PortHandler('/dev/ttyUSB0')
 # This object contains the methods for reading/writing
 packet_handler = PacketHandler(2.0)
 
+def setup():
+    # Start up both handlers
+    print("Opening USB port and establishing connection...\n")
+    port.openPort()
+    port.setBaudRate(57600)
 
-# Start up both handlers
-print("Opening USB port and establishing connection...\n")
-port.openPort()
-port.setBaudRate(57600)
+    # Read the ID numbers from the motor memory to test connection.
+    # Count how many successes to make sure that all are successes.
+    print("Test reading from each motor:")
+    read_success = 0
+    while read_success < len(motors):
+        for motor in motors:
+            # ID is 1 byte, stored at memory address 7.
+            motor_id, result, error = packet_handler.read1ByteTxRx(
+                    port, motor, 7)
+            if result != COMM_SUCCESS:
+                print("Read result was not a success.  The SDK says:")
+                print(f"{packet_handler.getTxRxResult(result)}") 
+            elif error != 0:
+                print("Error found in reading.  The SDK says:")
+                print(f"{packet_handler.getRxPacketError(error)}")
+            else:
+                print(f"Initial connection to motor {motor_id} successful.")
+                read_success += 1
+        if read_success < len(motors):
+            print("Not all motors succeeded.  Retrying in 1 second.\n\n")
+            time.sleep(1)
 
-# Read the ID numbers from the motor memory to test connection.
-# Count how many successes to make sure that all are successes.
-print("Test reading from each motor:")
-read_success = 0
-while read_success < len(motors):
-    for motor in motors:
-        # ID is 1 byte, stored at memory address 7.
-        motor_id, result, error = packet_handler.read1ByteTxRx(
-                port, motor, 7)
-        if result != COMM_SUCCESS:
-            print("Read result was not a success.  The SDK says:")
-            print(f"{packet_handler.getTxRxResult(result)}") 
-        elif error != 0:
-            print("Error found in reading.  The SDK says:")
-            print(f"{packet_handler.getRxPacketError(error)}")
-        else:
-            print(f"Initial connection to motor {motor_id} successful.")
-            read_success += 1
-    if read_success < len(motors):
-        print("Not all motors succeeded.  Retrying in 1 second.\n\n")
-        time.sleep(1)
+
 
 # Set operating mode to extended position
-
-
 def set_op_mode():
     packet_handler.write1ByteTxRx(port, GEAR, 64, 0)
     packet_handler.write1ByteTxRx(port, GEAR, 11, 3)
@@ -120,8 +120,6 @@ def measure():
     pos,_,_ = packet_handler.read4ByteTxRx(port, GEAR, 132)
     positions.append(pos)
     return positions
-    
-set_op_mode()
 
 def test_drive():
     x = input("D for drive, T for turn")
@@ -135,6 +133,3 @@ def test_drive():
         turn(-150)
     x=input()
     stop()
-
-
-drop()
