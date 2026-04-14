@@ -4,3 +4,4 @@
 tca/**
 
 __pycache__/
+.py[cod]
