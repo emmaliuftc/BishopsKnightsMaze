@@ -10,21 +10,49 @@ from adafruit_bno08x import (
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
-import multiplexer_test
+import motor_official as motor
+import multiplexer_official as plex
 import math
 from dynamixel_sdk import *
 import os
 
-
-# Make these match the actual ID numbers.  
+# Motor environment setup
+ 
 MOTOR_LB = 1
 MOTOR_LF = 2
 MOTOR_RB = 3
 MOTOR_RF = 4
 GEAR = 5
+motors = [MOTOR_LB, MOTOR_LF, MOTOR_RB, MOTOR_RF, GEAR]
+tires = [MOTOR_LB, MOTOR_LF, MOTOR_RB, MOTOR_RF]
+port = PortHandler('/dev/ttyUSB0')
+packet_handler = PacketHandler(2.0)
 
-vl, bno = multiplexer_test.setup()
+# Multiplexer environment setup
 
+
+
+
+
+
+
+
+
+
+
+# Test code
+
+motor.setup()
+motor.set_op_mode()
+motor.drop()
+
+
+imu = plex.setup_imu()
 while True:
-	multiplexer_test.distance(vl)
-	multiplexer_test.imu(bno)
+    print(plex.imu(imu))
+
+
+
+# while True:
+# 	plex.distance(vl)
+# 	plex.imu(bno)
