@@ -51,26 +51,30 @@ def setup_distance():
 def distance(vl):
     print(f"Distance: {vl.range}")
 
-def imu(bno):
+def accel(bno):
     accel_x, accel_y, accel_z = bno.acceleration
-    print("Acceleration:")
-    print("X: %0.6f  Y: %0.6f Z: %0.6f  m/s^2" % (accel_x, accel_y, accel_z))
+    # print("Acceleration:")
+    # print("X: %0.6f  Y: %0.6f Z: %0.6f  m/s^2" % (accel_x, accel_y, accel_z))
     #    print("")
+    return accel_x, accel_y, accel_z
 
-    print("Gyro:")
+def gyro(bno):
+    # print("Gyro:")
     gyro_x, gyro_y, gyro_z = bno.gyro
-    print("X: %0.6f  Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
+    # print("X: %0.6f  Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
     #    print("")
 
     #    print("Magnetometer:")
     #    mag_x, mag_y, mag_z = bno.magnetic
     #    print("X: %0.6f  Y: %0.6f Z: %0.6f uT" % (mag_x, mag_y, mag_z))
     #    print("")
+    return gyro_x, gyro_y, gyro_z
 
-    print("Rotation Vector Quaternion:")
+def quat(bno):
+    # print("Rotation Vector Quaternion:")
     quat_i, quat_j, quat_k, quat_real = bno.quaternion
-    print("I: %0.6f  J: %0.6f K: %0.6f  Real: %0.6f" % (quat_i, quat_j, quat_k, quat_real))
+    # print("I: %0.6f  J: %0.6f K: %0.6f  Real: %0.6f" % (quat_i, quat_j, quat_k, quat_real))
     #    print("")
-    time.sleep(0.5)
+    return quat_i, quat_j, quat_k, quat_real
 
 

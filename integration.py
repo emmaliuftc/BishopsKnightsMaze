@@ -15,6 +15,7 @@ import multiplexer_official as plex
 import math
 from dynamixel_sdk import *
 import os
+import threading
 
 # Motor environment setup
  
@@ -31,28 +32,71 @@ packet_handler = PacketHandler(2.0)
 # Multiplexer environment setup
 
 
-
-
-
-
-
-
-
-
-
 # Test code
 
-motor.setup()
-motor.set_op_mode()
-motor.drop()
+def motor_thread():
+    motor.setup()
+    motor.set_op_mode()
+    while True:
+        motor.drop()
+        time.sleep(3)
 
+def imu_thread():
+    imu = plex.setup_imu()
+    pos = [0,0,0]
+    vel = [0,0,0]
+    angle = [0,0,0]
+    start_time = time.time()
+    while True:
+        accel_x, accel_y, accel_z = plex.accel(imu)
+        gyro_x, gyro_y, gyro_z = plex.gyro(imu)
+    #    print(accel_x, accel_y, accel_z)
+        acc = [accel_x, accel_y, accel_z]
+        gyro = [gyro_x, gyro_y, gyro_z]
+        dt = time.time() - start_time
+        dg = [g * dt for g in gyro]
+        angle = [x+y for x, y in zip(dg,angle)]
+        dv = [a * dt for a in acc]
+        vel = [x+y for x, y in zip(dv,vel)]
+        dp = [v * dt for v in vel]
+        pos = [x+y for x, y in zip(dp,pos)]
 
-imu = plex.setup_imu()
-while True:
-    print(plex.imu(imu))
+        start_time = time.time()
+        if int(start_time*100000)%50==0:
+            print(f"pos: {pos}")
+            print(f"dt: {dt}")
+            print(f"acc: {acc}")
+# Multithreading 
 
+exit_event = threading.Event()
 
+def exit_worker():
+    while not exit_event.is_set():
+        print("Working")
+        time.sleep(1)
+    print("Thread shutting down gracefully (after everythings done)")
 
-# while True:
-# 	plex.distance(vl)
-# 	plex.imu(bno)
+threads = []
+
+t = threading.Thread(target=motor_thread)
+threads.append(t)
+t = threading.Thread(target=imu_thread)
+threads.append(t)
+t = threading.Thread(target=exit_worker)
+threads.append(t)
+
+for t in threads:
+    t.start()
+
+for t in threads:
+    t.join()
+
+try:
+    while True:
+        time.sleep(0.1)
+except KeyboardInterrupt:
+    print("I saw controlc")
+    exit_event.set()
+    for t in threads:
+        t.join()
+    print("all threads stopped :)")
