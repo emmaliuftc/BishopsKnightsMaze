@@ -60,7 +60,7 @@ def setup():
 # Set operating mode to extended position
 def set_op_mode():
     packet_handler.write1ByteTxRx(port, GEAR, 64, 0)
-    packet_handler.write1ByteTxRx(port, GEAR, 11, 3)
+    packet_handler.write1ByteTxRx(port, GEAR, 11, 4)
     packet_handler.write1ByteTxRx(port, GEAR, 64, 1)
     for tire in tires:
         packet_handler.write1ByteTxRx(port, tire, 64, 0)
@@ -91,9 +91,7 @@ def drop():
     position, result, error = packet_handler.read4ByteTxRx(port, GEAR, 132)
     # print(position, result, error)
     # print("moving to pos+1/9")
-    new_position = (position + 455)%4096
-    if 4096-new_position < 200:
-        new_position = 0
+    new_position = (position + 455)
     kit_go_to_pos(new_position)
     # packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
     
