@@ -81,15 +81,20 @@ def drive(vel, t=0):
         time.sleep(t)
         stop()
 
+def kit_go_to_pos(pos):
+    packet_handler.write4ByteTxRx(port, GEAR, 116, pos)
+
 def drop():
     # print("moving to zero)")
     # packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
     # time.sleep(2)
     position, result, error = packet_handler.read4ByteTxRx(port, GEAR, 132)
-    print(position, result, error)
-    print("moving to pos+409613")
-    new_position = (position + 315)%4096
-    packet_handler.write4ByteTxRx(port, GEAR, 116, new_position)
+    # print(position, result, error)
+    # print("moving to pos+1/9")
+    new_position = (position + 455)%4096
+    if 4096-new_position < 200:
+        new_position = 0
+    kit_go_to_pos(new_position)
     # packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
     
 

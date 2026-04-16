@@ -87,8 +87,10 @@ def drop():
     # time.sleep(2)
     position, result, error = packet_handler.read4ByteTxRx(port, GEAR, 132)
     print(position, result, error)
-    print("moving to pos+409613")
-    new_position = (position + 315)%4096
+    print("moving to pos+4096/9")
+    new_position = (position + 455)%4096
+    if 4096-new_position < 30:
+        new_position = 0
     packet_handler.write4ByteTxRx(port, GEAR, 116, new_position)
     # packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
     
@@ -135,6 +137,14 @@ def test_drive():
         turn(-150)
     x=input()
     stop()
+toggle = 0
 
 
-drop()
+packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
+time.sleep(1)
+position, result, error = packet_handler.read4ByteTxRx(port, GEAR, 132)
+print(position, result, error)
+x=input()
+while True:
+    drop()
+    x=input()

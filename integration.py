@@ -34,9 +34,12 @@ packet_handler = PacketHandler(2.0)
 
 # Test code
 
+
 def motor_thread():
     motor.setup()
     motor.set_op_mode()
+    time.sleep(3)
+    motor.kit_go_to_pos(0)
     while True:
         motor.drop()
         time.sleep(3)
@@ -54,7 +57,7 @@ def imu_thread():
         acc = [accel_x, accel_y, accel_z]
         gyro = [gyro_x, gyro_y, gyro_z]
         dt = time.time() - start_time
-        dg = [g * dt for g in gyro]
+        dg = [g * dt * 180 / math.pi for g in gyro]
         angle = [x+y for x, y in zip(dg,angle)]
         dv = [a * dt for a in acc]
         vel = [x+y for x, y in zip(dv,vel)]
@@ -62,17 +65,18 @@ def imu_thread():
         pos = [x+y for x, y in zip(dp,pos)]
 
         start_time = time.time()
-        if int(start_time*100000)%50==0:
-            print(f"pos: {pos}")
-            print(f"dt: {dt}")
-            print(f"acc: {acc}")
+#            print(f"pos: {pos}")
+#            print(f"dt: {dt}")
+        print(f"acc: {acc}")
+        print(f"gyro: {gyro}")
+        print(f"Angle: {angle}")
 # Multithreading 
 
 exit_event = threading.Event()
 
 def exit_worker():
     while not exit_event.is_set():
-        print("Working")
+        #print("Working")
         time.sleep(1)
     print("Thread shutting down gracefully (after everythings done)")
 
