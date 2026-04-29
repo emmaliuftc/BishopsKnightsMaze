@@ -6,4 +6,4 @@ tca/**
 __pycache__/
 .py[cod]
 
-.jpg
+*.jpg
