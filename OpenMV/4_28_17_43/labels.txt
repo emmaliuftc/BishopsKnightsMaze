@@ -1,0 +1,4 @@
+omega
+phi
+psi
+unknown

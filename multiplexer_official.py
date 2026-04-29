@@ -3,6 +3,7 @@ import busio
 import board
 import adafruit_tca9548a
 import adafruit_vl6180x
+import math
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
@@ -58,7 +59,7 @@ def accel(bno):
     #    print("")
     return accel_x, accel_y, accel_z
 
-def gyro(bno):
+def gyroscope(bno):
     # print("Gyro:")
     gyro_x, gyro_y, gyro_z = bno.gyro
     # print("X: %0.6f  Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
@@ -78,3 +79,40 @@ def quat(bno):
     return quat_i, quat_j, quat_k, quat_real
 
 
+
+
+
+def imu_thread():
+    imu = setup_imu()
+    pos = [0,0,0]
+    vel = [0,0,0]
+    angle = [0,0,0]
+    start_time = time.time()
+    x=0
+    xcor = -0.2734375
+    ycor = 0.507125
+    zcor = 9.49609375
+    while True:
+        x+=1
+        accel_x, accel_y, accel_z = accel(imu)
+        gyro_x, gyro_y, gyro_z = gyroscope(imu)
+        acc = accel_x - xcor, accel_y - ycor, accel_z - zcor 
+        gyro = [gyro_x, gyro_y, gyro_z]
+        dt = time.time() - start_time
+        dg = [g * dt for g in gyro] # * 180 / math.pi
+        angle = [x+y for x, y in zip(dg,angle)]
+        dv = [a * dt for a in acc]
+        vel = [x+y for x, y in zip(dv,vel)]
+        dp = [v * dt for v in vel]
+        pos = [x+y for x, y in zip(dp,pos)]
+
+        start_time = time.time()
+#            print(f"pos: {pos}")
+#            print(f"dt: {dt}")
+        if x%500 == 0:
+            print(f"acc: {acc}")
+            print(f"pos: {pos}")
+            print(f"gyro: {gyro}")
+            print(f"Angle: {angle}")
+
+imu_thread()
