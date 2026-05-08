@@ -10,7 +10,8 @@ class motor(Node):
     def __init__(self):
         super().__init__("motor_node")
        
-        # Make these match the actual ID numbers.  
+        # ------------- MOTOR SETUP
+        
         self.MOTOR_LB = 1
         self.MOTOR_LF = 2
         self.MOTOR_RB = 3
@@ -70,7 +71,7 @@ class motor(Node):
             self.packet_handler.write1ByteTxRx(self.port, tire, 64, 1)
         time.sleep(0.1)
     
-
+        # ----------- CONSTANTS
 
         self.FORWARD = 0
         self.RAMP = 1
@@ -80,7 +81,7 @@ class motor(Node):
         self.BIG_TURN = 5
         self.IDLE = 6
         self.KIT = 7
-
+        self.FORCE_STOP = 8
 
         self.VELOCITY = 100
         self.RAMP_VELOCITY = 200
@@ -89,31 +90,27 @@ class motor(Node):
         self.ONE_TILE = 3725
         self.NINETY = 30
 
-        self.state = self.IDLE
+        # ------------ MOTOR VARIABLES
 
+        self.state = self.IDLE
+        self.motor_ready = Bool()
         self.current_angle = 1.0
         self.target_angle = 0
         self.current_position = 0
-        self.target_pos = 0 # MAYBE NEED TO CHANGE HERE
+        self.target_pos = 0
         self.kit_current = 0
         self.kit_target = 0
 
+        # ------------- TIMERS PUBS AND SUBS
+
         self.create_timer(0.05, self.control_loop)
 
-        # self.encoder_timer = self.create_timer(0.1, self.encoder_timer_callback)
-
         self.motor_subscription = self.create_subscription(Int32, "motor_topic", self.motor_callback,10)
-        # self.encoder_publisher_ = self.create_publisher(Float64MultiArray, "encoder_topic", 10)
+        self.motor_ready_pub = self.create_publisher(Bool, "motor_ready", 10)
 
         self.gyro_subscription = self.create_subscription(Float64MultiArray, "gyro_topic", self.gyro_callback,10)
-    #     self.kit_subscription = self.create_subscription(String, "kit_topic", self.kit_callback, 10)
 
-    # def kit_callback(self, msg):
-    #     if msg.data == "drop":
-    #         position, result, error = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
-    #         new_position = (position + 455)
-    #         self.get_logger().info("Dropping 1 kit")
-    #         self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, new_position)
+    # ---------- INPUT HANDLERS
 
     def get_positions(self):
         positions = []
@@ -127,6 +124,13 @@ class motor(Node):
         positions.append(round(pos,3))
         return positions
 
+    def gyro_callback(self, msg):
+        self.current_angle = msg.data[2]
+        self.current_position = self.get_positions()[2]
+        # self.get_logger().info(f"GYRO ANGLE: {self.current_angle}")
+
+    # --------- THINGS TO DO
+
     def drive(self, vel):
         # self.get_logger().info(f"Driving at {vel}")
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LB, 104, vel)
@@ -137,7 +141,6 @@ class motor(Node):
     def stop(self):
         self.drive(0)
 
-
     def turn(self, vel):
         # self.get_logger().info(f"Turning at {vel}")
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LB, 104, vel)
@@ -145,73 +148,80 @@ class motor(Node):
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RB, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RF, 104, vel)
 
-    def gyro_callback(self, msg):
-        self.current_angle = msg.data[2]
-        self.current_position = self.get_positions()[2]
-        # self.get_logger().info(f"GYRO ANGLE: {self.current_angle}")
-    
+
+    # ---------- ADJUST STATE
 
     def motor_callback(self, msg):
         self.get_logger().info(f"Receiving: {msg.data}")
-        match msg.data:
-            case self.FORWARD:
-                self.target_position = self.current_position + self.ONE_TILE
-                self.state = self.FORWARD
-                self.get_logger().info(f"State: Forward to {self.target_position}")
-            case self.RAMP:
-                self.state = self.RAMP
-            case self.STAIR:
-                self.state = self.STAIR
-            case self.LEFT_TURN:
-                self.target_angle = self.current_angle - self.NINETY
-                self.state = self.LEFT_TURN
-            case self.RIGHT_TURN:
-                self.target_angle = self.current_angle + self.NINETY
-                self.state = self.RIGHT_TURN
-                self.get_logger().info(f"State: Right turn to {self.target_angle}")
-            case self.BIG_TURN:
-                self.state = self.BIG_TURN
-            case self.IDLE:
-                self.state = self.IDLE
-            case self.KIT:
-                self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
-                self.kit_target = (self.kit_current + 455)
-                self.state = self.KIT
+        if msg.data == self.FORCE_STOP:
+            self.state = self.IDLE
+            self.stop()
+        else:
+            if not motor_ready: # If I'm busy just ignore
+                self.get_logger().info("Rejecting command cuz motors are busy... BUT THIS SHOULDNT HAPPEN HELLO????????????")
+            else:
+                match msg.data:
+                    case self.FORWARD:
+                        self.target_position = self.current_position + self.ONE_TILE
+                        self.state = self.FORWARD
+                        self.get_logger().info(f"State: Forward to {self.target_position}")
+                    case self.RAMP:
+                        self.state = self.RAMP
+                    case self.STAIR:
+                        self.state = self.STAIR
+                    case self.LEFT_TURN:
+                        self.target_angle = self.current_angle - self.NINETY
+                        self.state = self.LEFT_TURN
+                    case self.RIGHT_TURN:
+                        self.target_angle = self.current_angle + self.NINETY
+                        self.state = self.RIGHT_TURN
+                        self.get_logger().info(f"State: Right turn to {self.target_angle}")
+                    case self.BIG_TURN:
+                        self.state = self.BIG_TURN
+                    case self.IDLE:
+                        self.state = self.IDLE
+                    case self.KIT:
+                        self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+                        self.kit_target = (self.kit_current + 455)
+                        self.state = self.KIT
 
+    # ---------- CHECKING EVERY TICK FOR ACTIVE STATE
 
     def control_loop(self):
-        match self.state:
-            case self.IDLE:
-                self.stop()
-                self.get_logger().info("Idle")
-            case self.FORWARD:
-                self.get_logger().info("Forward")
-                error = self.target_position - self.get_positions()[2]
-                if error < 10:
-                    self.get_logger().info("Target forward reached")
-                    self.state = self.IDLE
-                else:
-                    self.drive(self.VELOCITY)
-            case self.RIGHT_TURN:
-                self.get_logger().info("Right Turn")
-                error = self.target_angle - self.current_angle
-                if error < 2:
-                    self.get_logger().info("Target right turn reached")
-                    self.state = self.IDLE
-                else:
-                    self.turn(self.VELOCITY)
-            case self.KIT:
-                self.get_logger().info("Kit")
-                if self.kit_current != self.kit_target:
-                    self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
-                else:
-                    self.get_logger().info("Dropping 1 kit")
-                    self.state = self.IDLE
-            case _:
-                self.get_logger().info("Ur a friggin brick brah")
-
-
-
+        if self.state == self.IDLE:
+            self.stop()
+            self.get_logger().info("Idle")
+            self.motor_ready.data =  True # Motor is ready to do other stuff
+            self.motor_ready_pub.publish(self.motor_ready)            
+        else:
+            self.motor_ready.data = False # Motor is preoccupied
+            self.motor_ready_pub.publish(motor_ready)
+            match self.state:
+                case self.FORWARD:
+                    self.get_logger().info("Forward")
+                    error = self.target_position - self.get_positions()[2]
+                    if error < 10:
+                        self.get_logger().info("Target forward reached")
+                        self.state = self.IDLE
+                    else:
+                        self.drive(self.VELOCITY)
+                case self.RIGHT_TURN:
+                    self.get_logger().info("Right Turn")
+                    error = self.target_angle - self.current_angle
+                    if error < 2:
+                        self.get_logger().info("Target right turn reached")
+                        self.state = self.IDLE
+                    else:
+                        self.turn(self.VELOCITY)
+                case self.KIT:
+                    self.get_logger().info("Kit")
+                    if self.kit_current != self.kit_target:
+                        self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
+                    else:
+                        self.get_logger().info("Dropping 1 kit")
+                        self.state = self.IDLE
+                case _:
+                    self.get_logger().info("Ur a friggin brick brah")
 
 def main():
     rclpy.init()
