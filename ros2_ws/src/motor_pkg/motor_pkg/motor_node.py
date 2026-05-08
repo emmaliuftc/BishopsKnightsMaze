@@ -61,7 +61,6 @@ class motor(Node):
                 time.sleep(1)
 
         # # Set operating mode to extended position
-
         self.packet_handler.write1ByteTxRx(self.port, self.GEAR, 64, 0)
         self.packet_handler.write1ByteTxRx(self.port, self.GEAR, 11, 4)
         self.packet_handler.write1ByteTxRx(self.port, self.GEAR, 64, 1)
@@ -80,6 +79,7 @@ class motor(Node):
         self.RIGHT_TURN = 4
         self.BIG_TURN = 5
         self.IDLE = 6
+        self.KIT = 7
 
 
         self.VELOCITY = 100
@@ -95,6 +95,8 @@ class motor(Node):
         self.target_angle = 0
         self.current_position = 0
         self.target_pos = 0 # MAYBE NEED TO CHANGE HERE
+        self.kit_current = 0
+        self.kit_target = 0
 
         self.create_timer(0.05, self.control_loop)
 
@@ -104,7 +106,14 @@ class motor(Node):
         # self.encoder_publisher_ = self.create_publisher(Float64MultiArray, "encoder_topic", 10)
 
         self.gyro_subscription = self.create_subscription(Float64MultiArray, "gyro_topic", self.gyro_callback,10)
-        self.kit_subscription = self.create_subscription(String, "kit_topic", self.kit_callback, 10)
+    #     self.kit_subscription = self.create_subscription(String, "kit_topic", self.kit_callback, 10)
+
+    # def kit_callback(self, msg):
+    #     if msg.data == "drop":
+    #         position, result, error = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+    #         new_position = (position + 455)
+    #         self.get_logger().info("Dropping 1 kit")
+    #         self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, new_position)
 
     def get_positions(self):
         positions = []
@@ -139,25 +148,7 @@ class motor(Node):
     def gyro_callback(self, msg):
         self.current_angle = msg.data[2]
         self.current_position = self.get_positions()[2]
-        self.get_logger().info(f"GYRO ANGLE: {self.current_angle}")
-
-
-    # def encoder_timer_callback(self):
-    #     msg = Float64MultiArray()
-    #     positions = self.get_positions()
-    #     # positions = []
-    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LB, 132)
-    #     # positions.append(round(pos,3))
-    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LF, 132)
-    #     # positions.append(round(pos,3))
-    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RB, 132)
-    #     # positions.append(round(pos,3))
-    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RF, 132)
-    #     # positions.append(round(pos,3))
-    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
-    #     # positions.append(round(pos,3))
-    #     msg.data = [float(x) for x in positions]
-    #     self.encoder_publisher_.publish(msg)
+        # self.get_logger().info(f"GYRO ANGLE: {self.current_angle}")
     
 
     def motor_callback(self, msg):
@@ -182,26 +173,19 @@ class motor(Node):
                 self.state = self.BIG_TURN
             case self.IDLE:
                 self.state = self.IDLE
-            
-    def kit_callback(self, msg):
-        # print("moving to zero)")
-        # self.packet_handler.write4ByteTxRx(port, self.GEAR, 116, 0)
-        # time.sleep(2)
-        if msg.data == "drop":
-            position, result, error = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
-            # print(position, result, error)
-            # print("moving to pos+1/9")
-            new_position = (position + 455)
-            # kit_go_to_pos(new_position)
-            self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, new_position)
+            case self.KIT:
+                self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+                self.kit_target = (self.kit_current + 455)
+                self.state = self.KIT
+
 
     def control_loop(self):
         match self.state:
             case self.IDLE:
                 self.stop()
-                # self.get_logger().info("Idle")
+                self.get_logger().info("Idle")
             case self.FORWARD:
-                # self.get_logger().info("Forward")
+                self.get_logger().info("Forward")
                 error = self.target_position - self.get_positions()[2]
                 if error < 10:
                     self.get_logger().info("Target forward reached")
@@ -209,13 +193,20 @@ class motor(Node):
                 else:
                     self.drive(self.VELOCITY)
             case self.RIGHT_TURN:
-                # self.get_logger().info("Right Turn")
+                self.get_logger().info("Right Turn")
                 error = self.target_angle - self.current_angle
                 if error < 2:
                     self.get_logger().info("Target right turn reached")
                     self.state = self.IDLE
                 else:
                     self.turn(self.VELOCITY)
+            case self.KIT:
+                self.get_logger().info("Kit")
+                if self.kit_current != self.kit_target:
+                    self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
+                else:
+                    self.get_logger().info("Dropping 1 kit")
+                    self.state = self.IDLE
             case _:
                 self.get_logger().info("Ur a friggin brick brah")
 

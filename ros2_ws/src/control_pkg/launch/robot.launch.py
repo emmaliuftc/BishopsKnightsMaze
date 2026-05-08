@@ -29,6 +29,14 @@ def generate_launch_description():
         arguments=['--ros-args','--log-level','WARN']
     ),
     Node(
+        package='led_pkg',
+        executable='button_node',
+        name='button',
+        output='screen',
+        emulate_tty=True,
+        arguments=['--ros-args','--log-level','WARN']
+    ),
+    Node(
         package='motor_pkg',
         executable='motor_node',
         name='motor',

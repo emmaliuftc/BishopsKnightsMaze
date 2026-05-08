@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from gpiozero import LED, Button
+from gpiozero import LED
 from gpiozero.pins.lgpio import LGPIOFactory
 from std_msgs.msg import String, Bool
 

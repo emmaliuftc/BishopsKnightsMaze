@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'led_node = led_pkg.led_node:main'
+            'led_node = led_pkg.led_node:main',
+            'button_node = led_pkg.button_node:main'
         ],
     },
 )
