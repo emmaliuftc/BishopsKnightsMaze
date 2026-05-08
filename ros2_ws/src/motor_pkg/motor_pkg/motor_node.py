@@ -71,36 +71,40 @@ class motor(Node):
             self.packet_handler.write1ByteTxRx(self.port, tire, 64, 1)
         time.sleep(0.1)
     
+
+
+        self.FORWARD = 0
+        self.RAMP = 1
+        self.STAIR = 2
+        self.LEFT_TURN = 3
+        self.RIGHT_TURN = 4
+        self.BIG_TURN = 5
+        self.IDLE = 6
+
+
         self.VELOCITY = 100
         self.RAMP_VELOCITY = 200
         self.STAIR_VELOCITY = 150
 
-        self.TURN_ANGLE = 10
-        self.turned = True
+        self.ONE_TILE = 3725
+        self.NINETY = 30
 
-        self.encoder_timer = self.create_timer(0.1, self.encoder_timer_callback)
+        self.state = self.IDLE
+
+        self.current_angle = 1.0
+        self.target_angle = 0
+        self.current_position = 0
+        self.target_pos = 0 # MAYBE NEED TO CHANGE HERE
+
+        self.create_timer(0.05, self.control_loop)
+
+        # self.encoder_timer = self.create_timer(0.1, self.encoder_timer_callback)
 
         self.motor_subscription = self.create_subscription(Int32, "motor_topic", self.motor_callback,10)
-        self.encoder_publisher_ = self.create_publisher(Float64MultiArray, "encoder_topic", 10)
+        # self.encoder_publisher_ = self.create_publisher(Float64MultiArray, "encoder_topic", 10)
 
         self.gyro_subscription = self.create_subscription(Float64MultiArray, "gyro_topic", self.gyro_callback,10)
-
-
         self.kit_subscription = self.create_subscription(String, "kit_topic", self.kit_callback, 10)
-
-    # def stop():
-    #     drive(0)
-    
-    # def turn(vel, t=0):
-    #     if t==0:
-    #         self.packet_handler.write4ByteTxRx(port, self.MOTOR_LB, 104, vel)
-    #         self.packet_handler.write4ByteTxRx(port, self.MOTOR_LF, 104, vel)
-    #         self.packet_handler.write4ByteTxRx(port, self.MOTOR_RB, 104, vel)
-    #         self.packet_handler.write4ByteTxRx(port, self.MOTOR_RF, 104, vel)
-    #     else:
-    #         turn(vel)
-    #         time.sleep(t)
-    #         stop()
 
     def get_positions(self):
         positions = []
@@ -114,122 +118,71 @@ class motor(Node):
         positions.append(round(pos,3))
         return positions
 
-
-
     def drive(self, vel):
-        self.get_logger().info(f"Driving at {vel}")
+        # self.get_logger().info(f"Driving at {vel}")
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LB, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LF, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RB, 104, -vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RF, 104, -vel)
 
+    def stop(self):
+        self.drive(0)
+
+
     def turn(self, vel):
-        self.get_logger().info(f"Turning at {vel}")
+        # self.get_logger().info(f"Turning at {vel}")
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LB, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LF, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RB, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RF, 104, vel)
 
     def gyro_callback(self, msg):
-        self.gyro_angle = msg.data
-        self.get_logger().info(f"GYRO ANGLE: {self.gyro_angle}")
+        self.current_angle = msg.data[2]
+        self.current_position = self.get_positions()[2]
+        # self.get_logger().info(f"GYRO ANGLE: {self.gyro_angle}")
 
 
-
-    def stop(self):
-        self.drive(0)
-
-    def encoder_timer_callback(self):
-        msg = Float64MultiArray()
-        positions = self.get_positions()
-        # positions = []
-        # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LB, 132)
-        # positions.append(round(pos,3))
-        # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LF, 132)
-        # positions.append(round(pos,3))
-        # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RB, 132)
-        # positions.append(round(pos,3))
-        # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RF, 132)
-        # positions.append(round(pos,3))
-        # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
-        # positions.append(round(pos,3))
-        msg.data = [float(x) for x in positions]
-        self.encoder_publisher_.publish(msg)
+    # def encoder_timer_callback(self):
+    #     msg = Float64MultiArray()
+    #     positions = self.get_positions()
+    #     # positions = []
+    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LB, 132)
+    #     # positions.append(round(pos,3))
+    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LF, 132)
+    #     # positions.append(round(pos,3))
+    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RB, 132)
+    #     # positions.append(round(pos,3))
+    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RF, 132)
+    #     # positions.append(round(pos,3))
+    #     # pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+    #     # positions.append(round(pos,3))
+    #     msg.data = [float(x) for x in positions]
+    #     self.encoder_publisher_.publish(msg)
     
-    def turned_to_target(self, target_angle)->bool:
-        if self.angle >= target_angle:
-            self.turned = True
-            return True
-        return False
 
     def motor_callback(self, msg):
         self.get_logger().info(f"Receiving: {msg.data}")
         match msg.data:
-            case 0:
-                # Drive forward one tile
-                target_pos = self.get_positions()[1] + 3725
-                self.get_logger().info(f"POSTION AT CALLBACK: {target_pos}")
-                self.drive(self.VELOCITY)
-                while self.get_positions()[1] < target_pos:
-                    self.get_logger().info(f"CURRENT POSITION: {self.get_positions()[1]}")
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LB, 104, vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LF, 104, vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RB, 104, -vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RF, 104, -vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 104, vel)
-                    
-                self.stop()
-            case 1:
-                # Drive forward one ramp
-                target_pos = self.get_positions()[1] + 3725
-                self.get_logger().info(f"POSTION AT CALLBACK: {target_pos}")
-                self.drive(self.RAMP_VELOCITY)
-                while self.get_positions()[1] < target_pos:
-                    self.get_logger().info(f"CURRENT POSITION: {self.get_positions()[1]}")
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LB, 104, vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_LF, 104, vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RB, 104, -vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RF, 104, -vel)
-                    # self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 104, vel)
-                    
-                self.stop()                
-            case 2:
-                # Drive forward one stair
-                target_pos = self.get_positions()[1] + 3725
-                self.get_logger().info(f"POSTION AT CALLBACK: {target_pos}")
-                self.drive(self.STAIR_VELOCITY)
-                while self.get_positions()[1] < target_pos:
-                    self.get_logger().info(f"CURRENT POSITION: {self.get_positions()[1]}")
-                self.stop()
-            case 3:
-                # Turn left
-                self.turned = False
-                target_ang = self.gyro_angle[2] + self.TURN_ANGLE
-                self.turn(self.VELOCITY)
-                if self.turned_to_target(target_ang)
-                while self.gyro_angle[2] < target_ang:
-                    self.get_logger().info(f"CURRENT ANGLE: {self.gyro_angle[2]}")
-                self.stop()
-
-            case 4:
-                # Turn right
-                target_ang = self.gyro_angle[2] - self.TURN_ANGLE
-                self.turn(self.VELOCITY)
-                while self.gyro_angle[2] > target_ang:
-                    self.get_logger().info(f"CURRENT ANGLE: {self.gyro_angle[2]}")
-                self.stop()
-    
-            case 5:
-                # Turn 180
-                target_ang = self.gyro_angle[2] - 2 * self.TURN_ANGLE # Maybe need to flip sign
-                self.turn(self.VELOCITY)
-                while self.gyro_angle[2] > target_ang: # Maybe need to flip sign
-                    self.get_logger().info(f"CURRENT ANGLE: {self.gyro_angle[2]}")
-                self.stop()
-
-            case _:
-                self.get_logger().info("Lets lock in.")
-
+            case self.FORWARD:
+                self.target_position = self.current_position + self.ONE_TILE
+                self.state = self.FORWARD
+                self.get_logger().info(f"State: Forward to {self.target_position}")
+            case self.RAMP:
+                self.state = self.RAMP
+            case self.STAIR:
+                self.state = self.STAIR
+            case self.LEFT_TURN:
+                self.target_angle = self.current_angle - self.NINETY
+                self.state = self.LEFT_TURN
+            case self.RIGHT_TURN:
+                self.target_angle = self.current_angle + self.NINETY
+                self.state = self.RIGHT_TURN
+                self.get_logger().info(f"State: Right turn to {self.target_angle}")
+            case self.BIG_TURN:
+                self.state = self.BIG_TURN
+            case self.IDLE:
+                self.state = self.IDLE
+            
     def kit_callback(self, msg):
         # print("moving to zero)")
         # self.packet_handler.write4ByteTxRx(port, self.GEAR, 116, 0)
@@ -241,6 +194,31 @@ class motor(Node):
             new_position = (position + 455)
             # kit_go_to_pos(new_position)
             self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, new_position)
+
+    def control_loop(self):
+        match self.state:
+            case self.IDLE:
+                self.stop()
+                self.get_logger().info("Idle")
+            case self.FORWARD:
+                self.get_logger().info("Forward")
+                error = self.target_position - self.get_positions()[2]
+                if error < 10:
+                    self.get_logger().info("Target forward reached")
+                    self.state = self.IDLE
+                else:
+                    self.drive(self.VELOCITY)
+            case self.RIGHT_TURN:
+                self.get_logger().info("Right Turn")
+                error = self.target_angle - self.current_angle
+                if error < 2:
+                    self.get_logger().info("Target right turn reached")
+                    self.state = self.IDLE
+                else:
+                    self.turn(self.VELOCITY)
+            case _:
+                self.get_logger().info("Ur a friggin brick brah")
+
 
 
 

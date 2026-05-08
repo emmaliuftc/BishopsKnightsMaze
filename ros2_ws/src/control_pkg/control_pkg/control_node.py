@@ -14,10 +14,7 @@ class Control(Node):
         
         self.encoder_subscription = self.create_subscription(Float64MultiArray, "encoder_topic", self.encoder_callback,10)
 
-        self.kit_publisher_ = self.create_publisher(String, "kit_topic", 10)
-
-        self.gyro_subscription = self.create_subscription(Float64MultiArray, "gyro_topic", self.gyro_callback,10)
-        
+        self.kit_publisher_ = self.create_publisher(String, "kit_topic", 10)        
 
         self.led_timer = self.create_timer(5, self.led_timer_callback)
         self.led_state = Bool()
@@ -25,11 +22,8 @@ class Control(Node):
         self.motor_vel = Int32()
         self.motor_vel.data = 0
 
-    def gyro_callback(self, msg):
-        self.gyro_angle = msg.data
-        self.get_logger().info(f"GYRO ANGLE: {self.gyro_angle}")
-
-
+        self.STATES = [0,4,6]
+        self.test = 0
 
     def imu_callback(self,msg):
         ...
@@ -45,14 +39,19 @@ class Control(Node):
         self.led_publisher_.publish(self.led_state)
         # self.get_logger().info(f"Publishing: {self.led_state} to led_topic")
         
-        self.motor_vel.data = (self.motor_vel.data + 1) % 6 
+        self.test = (self.test + 1) % 3
+        self.motor_vel.data = self.STATES[self.test]
         self.motor_publisher_.publish(self.motor_vel)
         self.get_logger().info(f"Publishing: {self.motor_vel.data} to motor_topic")
+        
 
-        msg = String()
-        msg.data = "drop"
-        self.kit_publisher_.publish(msg)
-        self.get_logger().info(f"Publishing: {msg} to kit_topic")
+        '''
+        COME BACK AND GIVE KIT A SEPARATE NODE..... PLEASEEEEEEEKKKKKKKK
+        '''
+        # msg = String()
+        # msg.data = "drop"
+        # self.kit_publisher_.publish(msg)
+        # self.get_logger().info(f"Publishing: {msg} to kit_topic")
 
 
 
