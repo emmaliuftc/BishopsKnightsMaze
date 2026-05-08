@@ -30,6 +30,7 @@ class Control(Node):
         self.ALGO = 1
         self.STOP = 2
         self.state = 0
+        self.led_state = Bool()
 
         self.button_subscription = self.create_subscription(Bool, "button_topic", self.button_callback, 10)
         # self.openmv_subscription = self.create_subscription(Bool, )
@@ -39,20 +40,20 @@ class Control(Node):
         self.motor_publisher_ = self.create_publisher(Int32, "motor_topic",10)
         
 
-        self.led_timer = self.create_timer(5, self.led_timer_callback)
-        self.led_state = Bool()
+        self.timer = self.create_timer(0.05, self.master_loop)
 
     # ------------ INPUT HANDLERS
 
     def button_callback(self, msg):
-        if msg.data:
+        if not msg.data: # IT'S WEIRD I THINK IT'S BACKWARDS... REMOVE THE not IF OTHERWISE
             # Button is pressed -> Cycle forwards one state
             self.state = (self.state + 1) % 3
-            self.get_logger().info("Button pressed") # Perhaps this is backwards let us lock in mayhaps
+            self.get_logger().info(f"Button pressed, changing state to {self.state}")
 
     def status_callback(self,msg):
         self.motor_ready = msg.data
 
+    # ------------ CHECKING EVERY TICK FOR ACTIVE STATE (FSM CONTROL)... UM WHO KNOWS WHATS GOING IN HERE WE'LL FIND OUT...
 
     def master_loop(self):
         if not self.motor_status:
@@ -63,11 +64,15 @@ class Control(Node):
                     # Do nothing...?
                     return
                 case self.ALGO:
-                    # Begin algorithm
+                    # Begin algorithm...?
+
                     self.led_state.data = not self.led_state.data
                     self.led_publisher_.publish(self.led_state)
                     # self.get_logger().info(f"Publishing: {self.led_state} to led_topic")
                     
+                    '''
+                    This kinda doesn't make sense here this little test CUZ its chewcking every .05 instead of every 5 now...
+                    '''
                     self.motor_test = (self.motor_test + 1) % (len(self.MOTOR_STATES))
                     self.msg = Int32()
                     self.msg.data = self.MOTOR_STATES[self.motor_test]
@@ -79,7 +84,7 @@ class Control(Node):
                     self.get_logger().info("STOP EVERYTHING RAHHHHHHHHHH!!!!!!")
                     raise SystemExit
 
-
+    # ---------- THINGS TO DO... idk if we need anything in here but making the section just in case its helpful
 
 
 

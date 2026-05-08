@@ -222,7 +222,11 @@ class motor(Node):
                         self.state = self.IDLE
                 case _:
                     self.get_logger().info("Ur a friggin brick brah")
-
+    
+    def destroy_node(self):
+        self.stop()
+        super().destroy_node()
+        
 def main():
     rclpy.init()
     node = motor()
