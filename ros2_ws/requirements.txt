@@ -1,0 +1,9 @@
+gpiozero
+lgpio
+adafruit-circuitpython-bno08x
+adafruit-circuitpython-tca954a
+setuptools<66
+dynamixel-sdk
+adafruit-circuitpython-vl53l0x
+pyserial
+adafruit-circuitpython-tcs34725
