@@ -3,12 +3,14 @@ import busio
 import board
 import adafruit_tca9548a
 import adafruit_vl6180x
+import adafruit_vl53l0x
 import math
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
     BNO_REPORT_MAGNETOMETER,
     BNO_REPORT_ROTATION_VECTOR,
+    BNO_REPORT_LINEAR_ACCELERATION
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
 
@@ -41,23 +43,30 @@ def setup_imu():
     bno.enable_feature(BNO_REPORT_GYROSCOPE)
     bno.enable_feature(BNO_REPORT_MAGNETOMETER)
     bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+    bno.enable_feature(BNO_REPORT_LINEAR_ACCELERATION)
 
     # After initial setup, can just use sensors as normal.
     return bno
 
 def setup_distance():
-    vl = adafruit_vl6180x.VL6180X(tca[2])
+    vl = adafruit_vl53l0x.VL53L0X(tca[2])
     return vl
 
 def distance(vl):
-    print(f"Distance: {vl.range}")
+    return f"Distance: {vl.range}"
+
+def zeroed(x):
+    if x>=0.05:
+        return x
+    else:
+        return 0
 
 def accel(bno):
-    accel_x, accel_y, accel_z = bno.acceleration
+    accel_x, accel_y, accel_z = bno.linear_acceleration
     # print("Acceleration:")
     # print("X: %0.6f  Y: %0.6f Z: %0.6f  m/s^2" % (accel_x, accel_y, accel_z))
     #    print("")
-    return accel_x, accel_y, accel_z
+    return accel_x**2 + accel_y**2 + accel_z **2 > 0.05
 
 def gyroscope(bno):
     # print("Gyro:")
@@ -89,30 +98,34 @@ def imu_thread():
     angle = [0,0,0]
     start_time = time.time()
     x=0
-    xcor = -0.2734375
-    ycor = 0.507125
-    zcor = 9.49609375
+    xcor, ycor, zcor = 0, 0, 0
     while True:
-        x+=1
-        accel_x, accel_y, accel_z = accel(imu)
+        # x+=1
+        # accel_x, accel_y, accel_z = accel(imu)
         gyro_x, gyro_y, gyro_z = gyroscope(imu)
-        acc = accel_x - xcor, accel_y - ycor, accel_z - zcor 
+        # acc = accel_x, accel_y, accel_z
         gyro = [gyro_x, gyro_y, gyro_z]
         dt = time.time() - start_time
         dg = [g * dt for g in gyro] # * 180 / math.pi
         angle = [x+y for x, y in zip(dg,angle)]
-        dv = [a * dt for a in acc]
-        vel = [x+y for x, y in zip(dv,vel)]
-        dp = [v * dt for v in vel]
-        pos = [x+y for x, y in zip(dp,pos)]
-
+        # dv = [a * dt for a in acc]
+        # vel = [x+y for x, y in zip(dv,vel)]
+        # dp = [v * dt for v in vel]
+        # pos = [x+y for x, y in zip(dp,pos)]
+        acc = accel(imu)
         start_time = time.time()
 #            print(f"pos: {pos}")
 #            print(f"dt: {dt}")
         if x%500 == 0:
             print(f"acc: {acc}")
-            print(f"pos: {pos}")
-            print(f"gyro: {gyro}")
-            print(f"Angle: {angle}")
+            # print(f"pos: {pos}")
+            # print(f"gyro: {gyro}")
+            # print(f"Angle: {angle}")
 
-imu_thread()
+
+# imu_thread()
+
+
+v = setup_distance()
+while True:
+    print(distance(v))
