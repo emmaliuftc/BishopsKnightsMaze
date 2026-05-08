@@ -12,7 +12,7 @@ class Control(Node):
         self.led_publisher_ = self.create_publisher(Bool, "led_topic", 10)
         self.motor_publisher_ = self.create_publisher(Int32, "motor_topic",10)
         
-        self.encoder_subscription = self.create_subscription(Float64MultiArray, "encoder_topic", self.encoder_callback,10)
+        # self.encoder_subscription = self.create_subscription(Float64MultiArray, "encoder_topic", self.encoder_callback,10)
 
         self.kit_publisher_ = self.create_publisher(String, "kit_topic", 10)        
 

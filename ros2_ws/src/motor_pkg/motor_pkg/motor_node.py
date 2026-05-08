@@ -139,7 +139,7 @@ class motor(Node):
     def gyro_callback(self, msg):
         self.current_angle = msg.data[2]
         self.current_position = self.get_positions()[2]
-        # self.get_logger().info(f"GYRO ANGLE: {self.gyro_angle}")
+        self.get_logger().info(f"GYRO ANGLE: {self.current_angle}")
 
 
     # def encoder_timer_callback(self):
@@ -199,9 +199,9 @@ class motor(Node):
         match self.state:
             case self.IDLE:
                 self.stop()
-                self.get_logger().info("Idle")
+                # self.get_logger().info("Idle")
             case self.FORWARD:
-                self.get_logger().info("Forward")
+                # self.get_logger().info("Forward")
                 error = self.target_position - self.get_positions()[2]
                 if error < 10:
                     self.get_logger().info("Target forward reached")
@@ -209,7 +209,7 @@ class motor(Node):
                 else:
                     self.drive(self.VELOCITY)
             case self.RIGHT_TURN:
-                self.get_logger().info("Right Turn")
+                # self.get_logger().info("Right Turn")
                 error = self.target_angle - self.current_angle
                 if error < 2:
                     self.get_logger().info("Target right turn reached")

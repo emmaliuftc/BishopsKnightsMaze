@@ -35,6 +35,7 @@ class imu(Node):
         self.bno.enable_feature(BNO_REPORT_GYROSCOPE)
         self.bno.enable_feature(BNO_REPORT_MAGNETOMETER)
         self.bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+        
 
         self.vlleft = adafruit_vl53l0x.VL53L0X(self.tca[2])
         self.vlfront = adafruit_vl53l0x.VL53L0X(self.tca[3])
@@ -51,10 +52,10 @@ class imu(Node):
             gyro_x, gyro_y, gyro_z = self.bno.gyro
             gyro = [gyro_x, gyro_y, gyro_z]
             dt = time.time() - start_time
-            dg = [g * dt for g in gyro] # * 180 / math.pi
+            dg = [g * dt * 180 / math.pi for g in gyro] # 
             angle = [x+y for x, y in zip(dg,angle)]
             msg = Float64MultiArray()
-            msg.data = angle         
+            msg.data = angle       
             self.gyro_publisher_.publish(msg)
             start_time = time.time()
             
