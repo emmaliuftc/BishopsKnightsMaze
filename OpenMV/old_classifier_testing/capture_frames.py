@@ -1,10 +1,5 @@
-# Dataset Capture Script - By: student - Wed Apr 29 2026
 
-# Use this script to control how your OpenMV Cam captures images for your dataset.
-# You should apply the same image pre-processing steps you expect to run on images
-# that you will feed to your model during run-time.
-
-import sensor, image, time
+import sensor, image, time, uos
 
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565) # Modify as you like.
@@ -13,6 +8,11 @@ sensor.set_windowing((320,240))
 sensor.skip_frames(time = 5000)
 
 clock = time.clock()
+folder = "frameys"
+try:
+    uos.mkdir(folder)
+except:
+    pass
 
 for i in range(600):
     clock.tick()
@@ -24,7 +24,9 @@ for i in range(600):
     # Apply other filters...
     # E.g. mean/median/mode/midpoint/etc.
     # print("\x1b[64OMV")
-    p = "~/Documents/maze/OpenMV/44_28_17_43/omega.class/omega_" + str(i) + ".jpg"
-    img.save(p)
+    #saves it in folder/00i
+    filename = folder + "/" + str(i) + ".jpg"
+    img.save(filename)
     # print(clock.fps())
     time.sleep(0.1)
+    print(f"Saved: {filename}")

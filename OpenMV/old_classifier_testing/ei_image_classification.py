@@ -9,7 +9,7 @@ import sensor, time, ml, uos, gc
 sensor.reset()                         # Reset and initialize the sensor.
 sensor.set_pixformat(sensor.RGB565)    # Set pixel format to RGB565 (or GRAYSCALE)
 sensor.set_framesize(sensor.QVGA)      # Set frame size to QVGA (320x240)
-sensor.set_windowing((240,240))       # Set 240x240 window.
+sensor.set_windowing((240, 240))       # Set 240x240 window.
 sensor.skip_frames(time=2000)          # Let the camera adjust.
 
 net = None
@@ -34,8 +34,12 @@ while(True):
     img = sensor.snapshot()
 
     predictions_list = list(zip(labels, net.predict([img])[0].flatten().tolist()))
-
+    pred = ""
+    pred_conf = -1
     for i in range(len(predictions_list)):
-        print("%s = %f" % (predictions_list[i][0], predictions_list[i][1]))
+        if predictions_list[i][1] > pred_conf:
+            pred_conf = predictions_list[i][1]
+            pred = predictions_list[i][0]
+    print(f"{pred}: {pred_conf}")
 
-    print(clock.fps(), "fps")
+    # print(clock.fps(), "fps")
