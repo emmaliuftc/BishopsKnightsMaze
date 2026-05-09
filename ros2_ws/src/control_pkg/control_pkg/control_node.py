@@ -22,9 +22,16 @@ class Control(Node):
         self.MOTOR_STATES = [self.MOTOR_IDLE, self.MOTOR_KIT]
         self.motor_test = 0
 
+        self.HARMED = 2
+        self.STABLE = 1
+        self.UNHARMED = 0
+        self.BACKGROUND = -1
+
         # ------------ CONTROL NODE VARIABLES
 
         self.motor_ready = True
+        self.camera_sees = "background"
+        self.victim_status = self.BACKGROUND        
 
         self.WAITING = 0
         self.ALGO = 1
@@ -33,7 +40,7 @@ class Control(Node):
         self.led_state = Bool()
 
         self.button_subscription = self.create_subscription(Bool, "button_topic", self.button_callback, 10)
-        # self.openmv_subscription = self.create_subscription(Bool, )
+        self.openmv_subscription = self.create_subscription(String, "openmv_data", self.camera_callback, 10)
         self.motor_status_sub = self.create_subscription(Bool, "motor_ready", self.status_callback, 10)
 
         self.led_publisher_ = self.create_publisher(Bool, "led_topic", 10)
@@ -52,6 +59,25 @@ class Control(Node):
 
     def status_callback(self,msg):
         self.motor_ready = msg.data
+    
+    def camera_callback(self,msg):
+        result = msg.data
+        self.get_logger().info(f"Received: {result} from openmv_node")
+        result = line.split(":")
+        if result[0]=="Target":
+            self.victim_status = int(result[1])
+        else: # It's a letter
+            match result[0]:
+                case "phi":
+                    self.victim_status = self.HARMED
+                case "omega":
+                    self.victim_status = self.UNHARMED
+                case "psi":
+                    self.victim_status = self.STABLE
+                case _:
+                    self.victim_status = self.BACKGROUND
+
+
 
     # ------------ CHECKING EVERY TICK FOR ACTIVE STATE (FSM CONTROL)... UM WHO KNOWS WHATS GOING IN HERE WE'LL FIND OUT...
 
@@ -73,6 +99,9 @@ class Control(Node):
                     '''
                     This kinda doesn't make sense here this little test CUZ its chewcking every .05 instead of every 5 now...
                     '''
+                    # ------- Here's the logic to 
+
+
                     self.motor_test = (self.motor_test + 1) % (len(self.MOTOR_STATES))
                     self.msg = Int32()
                     self.msg.data = self.MOTOR_STATES[self.motor_test]
