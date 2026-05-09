@@ -81,6 +81,7 @@ class motor(Node):
         self.BIG_TURN = 5
         self.IDLE = 6
         self.KIT = 7
+        self.TWO_KITS = 9
         self.FORCE_STOP = 8
 
         self.VELOCITY = 100
@@ -184,6 +185,10 @@ class motor(Node):
                         self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
                         self.kit_target = (self.kit_current + 455)
                         self.state = self.KIT
+                    case self.TWO_KITS:
+                        self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+                        self.kit_target = (self.kit_current + 2*455)
+                        self.state = self.TWO_KITS
 
     # ---------- CHECKING EVERY TICK FOR ACTIVE STATE
 
@@ -219,6 +224,13 @@ class motor(Node):
                         self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
                     else:
                         self.get_logger().info("Dropping 1 kit")
+                        self.state = self.IDLE
+                case self.TWO_KITS:
+                    self.get_logger().info("Two kits")
+                    if self.kit_current != self.kit_target:
+                        self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
+                    else:
+                        self.get_logger().info("Dropping 2 kits")
                         self.state = self.IDLE
                 case _:
                     self.get_logger().info("Ur a friggin brick brah")
