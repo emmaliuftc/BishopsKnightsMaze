@@ -3,10 +3,11 @@ from rclpy.node import Node
 from std_msgs.msg import String, Bool, Int32, Float64MultiArray
 import time
 
+
 class Control(Node):
     def __init__(self):
         super().__init__("control_node")
-        
+
         # ------------- CONSTANTS (sort of)
 
         self.MOTOR_FORWARD = 0
@@ -26,16 +27,17 @@ class Control(Node):
         self.STABLE = 1
         self.UNHARMED = 0
         self.BACKGROUND = -1
-        
+
         self.TILE_N = 2
         self.TILE_U = 1
-        self.TILE_W = 0 
+        self.TILE_W = 0
 
         # ------------ CONTROL NODE VARIABLES
 
         self.motor_ready = True
         self.camera_sees = "background"
-        self.victim_status = self.BACKGROUND        
+        self.victim_status = self.BACKGROUND
+        self.button_status = False
 
         self.STANDBY = 0
         self.MAPPING = 1
@@ -49,37 +51,48 @@ class Control(Node):
         self.led_state.data = True
 
         self.hdg = 0
-        self.pos = [0,0]
+        self.pos = [0, 0]
         self.tiles = {}
         self.target_hdg
 
-        self.button_subscription = self.create_subscription(Bool, "button_topic", self.button_callback, 10)
-        self.openmv_subscription = self.create_subscription(String, "openmv_data", self.camera_callback, 10)
-        self.motor_status_sub = self.create_subscription(Bool, "motor_ready", self.status_callback, 10)
+        self.button_subscription = self.create_subscription(
+            Bool, "button_topic", self.button_callback, 10)
+        self.openmv_subscription = self.create_subscription(
+            String, "openmv_data", self.camera_callback, 10)
+        self.motor_status_sub = self.create_subscription(
+            Bool, "motor_ready", self.status_callback, 10)
 
         self.led_publisher_ = self.create_publisher(Bool, "led_topic", 10)
-        self.motor_publisher_ = self.create_publisher(Int32, "motor_topic",10)
-        
+        self.motor_publisher_ = self.create_publisher(Int32, "motor_topic", 10)
+
         self.timer = self.create_timer(0.05, self.master_loop)
 
     # ------------ INPUT HANDLERS
 
     def button_callback(self, msg):
-        if not msg.data: # IT'S WEIRD I THINK IT'S BACKWARDS... REMOVE THE not IF OTHERWISE
-            # Button is pressed -> Cycle forwards one state
-            self.state = (self.state + 1) % 3
-            self.get_logger().info(f"Button pressed, changing state to {self.state}")
+        if msg.data:  # Might need a not here, the button information might be reversed
+            if self.state == self.STANDBY:
+                self.state = self.MAPPING
+            '''
+            NEED TO FINISH HERE... LOGIC FOR HOW TO CHANGE STATES ONCE BUTTON IS PRESSED
+            
+            
+            '''
+            # self.state = (self.state + 1) % 3
+            # self.get_logger().info(
+            #     f"Button pressed, changing state to {self.state}")
+            # '''
 
-    def status_callback(self,msg):
+    def status_callback(self, msg):
         self.motor_ready = msg.data
-    
-    def camera_callback(self,msg):
+
+    def camera_callback(self, msg):
         result = msg.data
         self.get_logger().info(f"Received: {result} from openmv_node")
-        result = line.split(":")
-        if result[0]=="Target":
+        result = result.split(":")
+        if result[0] == "Target":
             self.victim_status = int(result[1])
-        else: # It's a letter
+        else:  # It's a letter
             match result[0]:
                 case "phi":
                     self.victim_status = self.HARMED
@@ -89,8 +102,6 @@ class Control(Node):
                     self.victim_status = self.STABLE
                 case _:
                     self.victim_status = self.BACKGROUND
-
-
 
     # ------------ CHECKING EVERY TICK FOR ACTIVE STATE (FSM CONTROL)... UM WHO KNOWS WHATS GOING IN HERE WE'LL FIND OUT...
 
@@ -109,34 +120,13 @@ class Control(Node):
             case self.SCANNING:
                 self.execute_scanning()
                 # If theres more walls to scan I need to go to self.state = self.TURNTO SCAN
-                # But if theres no more than I can go to self.TURNING (to leave) 
+                # But if theres no more than I can go to self.TURNING (to leave)
             case self.TURN_TO_SCAN:
                 self.execute_turn_to_scan()
 
-        # case self.ALGO:
-        #     self.move()
-        #     # Begin algorithm...?
-
-        #     self.led_state.data = not self.led_state.data
-            
-        #     '''
-        #     This kinda doesn't make sense here this little test CUZ its chewcking every .05 instead of every 5 now...
-        #     '''
-        #     # ------- Here's the logic to 
-
-
-        #     self.motor_test = (self.motor_test + 1) % (len(self.MOTOR_STATES))
-        #     self.msg = Int32()
-        #     self.msg.data = self.MOTOR_STATES[self.motor_test]
-        #     self.motor_publisher_.publish(self.msg)
-        #     self.get_logger().info(f"Publishing: {self.msg.data} to motor_topic")
-
-        #     case self.STOP:
-        #         # Stop everything
-        #         self.get_logger().info("STOP EVERYTHING RAHHHHHHHHHH!!!!!!")
-        #         raise SystemExit
-
-
+            # # Stop everything
+            # self.get_logger().info("STOP EVERYTHING RAHHHHHHHHHH!!!!!!")
+            # raise SystemExit
 
     # ---------- THINGS TO DO... idk if we need anything in here but making the section just in case its helpful
 
@@ -146,18 +136,18 @@ class Control(Node):
         self.update_map(self.pos[0], self.pos[1])
 
         max_score = self.score(self.pos[0] + 1, self.pos[1])
-        
+
         self.target_hdg = 0
 
-        if self.score(self.pos[0],self.pos[1] + 1) > max_score: # Check 90
+        if self.score(self.pos[0], self.pos[1] + 1) > max_score:  # Check 90
             max_score = self.score(self.pos[0], self.pos[1] + 1)
             self.target_hdg = 180
-        
-        if self.score(self.pos[0] - 1, self.pos[1]) > max_score: # Check 180
+
+        if self.score(self.pos[0] - 1, self.pos[1]) > max_score:  # Check 180
             max_score = self.score(self.pos[0] - 1, self.pos[1])
             self.target_hdg = 180
 
-        if self.score(self.pos[0], self.pos[1] - 1) > max_score: # Check 270
+        if self.score(self.pos[0], self.pos[1] - 1) > max_score:  # Check 270
             self.target_hdg = 270
 
         self.state = self.TURN_TO_SCAN
@@ -165,7 +155,7 @@ class Control(Node):
     def execute_turn_to_scan(self):
         self.get_logger().info(f"turning to scan at tile at {self.pos}")
 
-        for side in self.tiles[(self.pos[0],self.pos[1])]["sides"]:
+        for side in self.tiles[(self.pos[0], self.pos[1])]["sides"]:
             if side == self.TILE_W:
                 ''' 
                 # To turn to a certain heading basically you need to figure out 
@@ -177,7 +167,7 @@ class Control(Node):
                 self.motor_publisher_(cmd)
                 time.sleep(3)
                 '''
-        
+
         self.state = self.SCANNING
 
     def execute_scanning(self):
@@ -190,17 +180,20 @@ class Control(Node):
                 cmd.data = 9
                 self.motor_publisher_.publish(cmd)
                 self.led_publisher_.publish(self.led_state)
-                self.get_logger().info(f"Publishing: {self.led_state} to led_topic")
+                self.get_logger().info(
+                    f"Publishing: {self.led_state} to led_topic")
             case self.STABLE:
                 # Drop one kit
                 cmd = Int32()
                 cmd.data = 7
                 self.motor_publisher_.publish(cmd)
                 self.led_publisher_.publish(self.led_state)
-                self.get_logger().info(f"Publishing: {self.led_state} to led_topic")
+                self.get_logger().info(
+                    f"Publishing: {self.led_state} to led_topic")
             case self.UNHARMED:
                 self.led_publisher_.publish(self.led_state)
-                self.get_logger().info(f"Publishing: {self.led_state} to led_topic")
+                self.get_logger().info(
+                    f"Publishing: {self.led_state} to led_topic")
 
         self.state = self.TURNING
 
@@ -225,7 +218,7 @@ class Control(Node):
         self.hdg = self.target_hdg
 
         self.state = self.DRIVING
-    
+
     def execute_driving(self):
         self.get_logger().info("Driving forward 1 tile")
 
@@ -233,26 +226,27 @@ class Control(Node):
         cmd.data = 0
         self.motor_publisher_.publish(cmd)
 
-        match self.hdg: 
+        match self.hdg:
             case 0:
                 self.pos[0] += 1
             case 90:
                 self.pos[1] += 1
             case 180:
-                self.pos[0] -=1
+                self.pos[0] -= 1
             case 270:
                 self.pos[1] -= 1
-        
+
         self.state = self.MAPPING
-        
+
     # ----------- HELPER FUNCTIONS
 
     def new_tile(self, posx: int, posy: int, visited: bool, sides=None):
-            if sides is None:
-                sides = [self.U, self.U, self.U, self.U]
-                
-            if (posx, posy) not in self.tiles:
-                self.tiles[(posx, posy)] = {"visited": visited, "sides": sides, "extra": ""}
+        if sides is None:
+            sides = [self.U, self.U, self.U, self.U]
+
+        if (posx, posy) not in self.tiles:
+            self.tiles[(posx, posy)] = {
+                "visited": visited, "sides": sides, "extra": ""}
 
     def update_map(self, posx, posy):
         self.tiles[(posx, posy)]["visited"] = True
@@ -266,60 +260,69 @@ class Control(Node):
             (90 + self.hdg) % 360: self.tiles_left,
             (270 + self.hdg) % 360: self.tiles_right
         }
-        if not 0 == (180+hdg)%360:    
+        if not 0 == (180+self.hdg) % 360:
             for new in range(new_tiles_in_dirs[0]):
                 xc = self.pos[0]+new
                 yc = self.pos[1]
-                new_tile(xc,yc,False)
-                tiles[(xc,yc)]["sides"][0],tiles[(xc,yc)]["sides"][2] = self.TILE_N,self.TILE_N
+                self.new_tile(xc, yc, False)
+                self.tiles[(xc, yc)]["sides"][0], self.tiles[(
+                    xc, yc)]["sides"][2] = self.TILE_N, self.TILE_N
             xc = self.pos[0]+new_tiles_in_dirs[0]
             yc = self.pos[1]
-            new_tile(xc,yc,False)
-            tiles[(xc,yc)]["sides"][0],tiles[(xc,yc)]["sides"][2] = self.TILE_W,self.TILE_N
-                    
-        if not 90 == (180+hdg)%360:    
+            self.new_tile(xc, yc, False)
+            self.tiles[(xc, yc)]["sides"][0], self.tiles[(xc, yc)
+                                                         ]["sides"][2] = self.TILE_W, self.TILE_N
+
+        if not 90 == (180+self.hdg) % 360:
             for new in range(new_tiles_in_dirs[90]):
                 xc = self.pos[0]
                 yc = self.pos[1]+new
-                new_tile(xc,yc,False)
-                tiles[(xc,yc)]["sides"][1],tiles[(xc,yc)]["sides"][3] = self.TILE_N,self.TILE_N
+                self.new_tile(xc, yc, False)
+                self.tiles[(xc, yc)]["sides"][1], self.tiles[(
+                    xc, yc)]["sides"][3] = self.TILE_N, self.TILE_N
             xc = self.pos[0]
             yc = self.pos[1]+new_tiles_in_dirs[90]
-            new_tile(xc,yc,False)
-            tiles[(xc,yc)]["sides"][1],tiles[(xc,yc)]["sides"][2] = self.TILE_W,self.TILE_N
-            
-        if not 180 == (180+hdg)%360:    
+            self.new_tile(xc, yc, False)
+            self.tiles[(xc, yc)]["sides"][1], self.tiles[(xc, yc)
+                                                         ]["sides"][2] = self.TILE_W, self.TILE_N
+
+        if not 180 == (180+self.hdg) % 360:
             for new in range(new_tiles_in_dirs[180]):
                 xc = self.pos[0]-new
                 yc = self.pos[1]
-                new_tile(xc,yc,False)
-                tiles[(xc,yc)]["sides"][0],tiles[(xc,yc)]["sides"][2] = self.TILE_N,self.TILE_N
+                self.new_tile(xc, yc, False)
+                self.tiles[(xc, yc)]["sides"][0], self.tiles[(
+                    xc, yc)]["sides"][2] = self.TILE_N, self.TILE_N
             xc = self.pos[0]+new_tiles_in_dirs[180]
             yc = self.pos[1]
-            new_tile(xc,yc,False)
-            tiles[(xc,yc)]["sides"][0],tiles[(xc,yc)]["sides"][2] = self.TILE_N,self.TILE_W
-            
-        if not 90 == (180+hdg)%360:    
+            self.new_tile(xc, yc, False)
+            self.tiles[(xc, yc)]["sides"][0], self.tiles[(xc, yc)
+                                                         ]["sides"][2] = self.TILE_N, self.TILE_W
+
+        if not 90 == (180+self.hdg) % 360:
             for new in range(new_tiles_in_dirs[90]):
                 xc = self.pos[0]
                 yc = self.pos[1]-new
-                new_tile(xc,yc,False)
-                tiles[(xc,yc)]["sides"][1],tiles[(xc,yc)]["sides"][3] = self.TILE_N,self.TILE_N
+                self.new_tile(xc, yc, False)
+                self.tiles[(xc, yc)]["sides"][1], self.tiles[(
+                    xc, yc)]["sides"][3] = self.TILE_N, self.TILE_N
             xc = self.pos[0]
             yc = self.pos[1]-new_tiles_in_dirs[270]
-            new_tile(xc,yc,False)
-            tiles[(xc,yc)]["sides"][1],tiles[(xc,yc)]["sides"][2] = self.TILE_N,self.TILE_W
-                
+            self.new_tile(xc, yc, False)
+            self.tiles[(xc, yc)]["sides"][1], self.tiles[(xc, yc)
+                                                         ]["sides"][2] = self.TILE_N, self.TILE_W
+
     def score(self, tilex, tiley):
         if (tilex, tiley) not in self.tiles:
             return -99
-        
+
         score = 0
         tile = self.tiles[(tilex, tiley)]
         if tile["visited"]:
             score -= 10
         score += sum(tile["sides"])
         return score
+
 
 def main():
     rclpy.init()

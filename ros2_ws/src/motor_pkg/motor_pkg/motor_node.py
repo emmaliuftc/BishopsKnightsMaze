@@ -6,12 +6,13 @@ from std_msgs.msg import String, Bool, Int32, Float64MultiArray
 from dynamixel_sdk import *
 import math
 
+
 class motor(Node):
     def __init__(self):
         super().__init__("motor_node")
-       
+
         # ------------- MOTOR SETUP
-        
+
         self.MOTOR_LB = 1
         self.MOTOR_LF = 2
         self.MOTOR_RB = 3
@@ -19,8 +20,10 @@ class motor(Node):
         self.GEAR = 5
 
         # If you have more/fewer than 4 motors make sure to adjust this list
-        self.motors = [self.MOTOR_LB, self.MOTOR_LF, self.MOTOR_RB, self.MOTOR_RF, self.GEAR]
-        self.tires = [self.MOTOR_LB, self.MOTOR_LF, self.MOTOR_RB, self.MOTOR_RF]
+        self.motors = [self.MOTOR_LB, self.MOTOR_LF,
+                       self.MOTOR_RB, self.MOTOR_RF, self.GEAR]
+        self.tires = [self.MOTOR_LB, self.MOTOR_LF,
+                      self.MOTOR_RB, self.MOTOR_RF]
 
         # This identifies the USB port where the motor controller is attached
         self.port = PortHandler('/dev/ttyUSB0')
@@ -42,12 +45,12 @@ class motor(Node):
             for motor in self.motors:
                 # ID is 1 byte, stored at memory address 7.
                 motor_id, result, error = self.packet_handler.read1ByteTxRx(
-                        self.port, motor, 7)
+                    self.port, motor, 7)
                 if result != COMM_SUCCESS:
                     self.get_logger().info("Read result was not a success.  The SDK says:")
                     self.get_logger().info("error fix uer code")
                     # print("Read result was not a success.  The SDK says:")
-                    # print(f"{self.packet_handler.getTxRxResult(result)}") 
+                    # print(f"{self.packet_handler.getTxRxResult(result)}")
                 elif error != 0:
                     self.get_logger().info("error fix uer code")
                     # print("Error found in reading.  The SDK says:")
@@ -70,7 +73,7 @@ class motor(Node):
             self.packet_handler.write1ByteTxRx(self.port, tire, 11, 1)
             self.packet_handler.write1ByteTxRx(self.port, tire, 64, 1)
         time.sleep(0.1)
-    
+
         # ----------- CONSTANTS
 
         self.FORWARD = 0
@@ -106,23 +109,29 @@ class motor(Node):
 
         self.create_timer(0.05, self.control_loop)
 
-        self.motor_subscription = self.create_subscription(Int32, "motor_topic", self.motor_callback,10)
+        self.motor_subscription = self.create_subscription(
+            Int32, "motor_topic", self.motor_callback, 10)
         self.motor_ready_pub = self.create_publisher(Bool, "motor_ready", 10)
 
-        self.gyro_subscription = self.create_subscription(Float64MultiArray, "gyro_topic", self.gyro_callback,10)
+        self.gyro_subscription = self.create_subscription(
+            Float64MultiArray, "gyro_topic", self.gyro_callback, 10)
 
     # ---------- INPUT HANDLERS
 
     def get_positions(self):
         positions = []
-        pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LB, 132)
-        positions.append(round(pos,3))
-        pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_LF, 132)
-        positions.append(round(pos,3))
-        pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RB, 132)
-        positions.append(round(pos,3))
-        pos,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.MOTOR_RF, 132)
-        positions.append(round(pos,3))
+        pos, _, _ = self.packet_handler.read4ByteTxRx(
+            self.port, self.MOTOR_LB, 132)
+        positions.append(round(pos, 3))
+        pos, _, _ = self.packet_handler.read4ByteTxRx(
+            self.port, self.MOTOR_LF, 132)
+        positions.append(round(pos, 3))
+        pos, _, _ = self.packet_handler.read4ByteTxRx(
+            self.port, self.MOTOR_RB, 132)
+        positions.append(round(pos, 3))
+        pos, _, _ = self.packet_handler.read4ByteTxRx(
+            self.port, self.MOTOR_RF, 132)
+        positions.append(round(pos, 3))
         return positions
 
     def gyro_callback(self, msg):
@@ -149,7 +158,6 @@ class motor(Node):
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RB, 104, vel)
         self.packet_handler.write4ByteTxRx(self.port, self.MOTOR_RF, 104, vel)
 
-
     # ---------- ADJUST STATE
 
     def motor_callback(self, msg):
@@ -158,14 +166,16 @@ class motor(Node):
             self.state = self.IDLE
             self.stop()
         else:
-            if not motor_ready: # If I'm busy just ignore
-                self.get_logger().info("Rejecting command cuz motors are busy... BUT THIS SHOULDNT HAPPEN HELLO????????????")
+            if not self.motor_ready:  # If I'm busy just ignore
+                self.get_logger().info(
+                    "Rejecting command cuz motors are busy... BUT THIS SHOULDNT HAPPEN HELLO????????????")
             else:
                 match msg.data:
                     case self.FORWARD:
                         self.target_position = self.current_position + self.ONE_TILE
                         self.state = self.FORWARD
-                        self.get_logger().info(f"State: Forward to {self.target_position}")
+                        self.get_logger().info(
+                            f"State: Forward to {self.target_position}")
                     case self.RAMP:
                         self.state = self.RAMP
                     case self.STAIR:
@@ -176,17 +186,20 @@ class motor(Node):
                     case self.RIGHT_TURN:
                         self.target_angle = self.current_angle + self.NINETY
                         self.state = self.RIGHT_TURN
-                        self.get_logger().info(f"State: Right turn to {self.target_angle}")
+                        self.get_logger().info(
+                            f"State: Right turn to {self.target_angle}")
                     case self.BIG_TURN:
                         self.state = self.BIG_TURN
                     case self.IDLE:
                         self.state = self.IDLE
                     case self.KIT:
-                        self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+                        self.kit_current, _, _ = self.packet_handler.read4ByteTxRx(
+                            self.port, self.GEAR, 132)
                         self.kit_target = (self.kit_current + 455)
                         self.state = self.KIT
                     case self.TWO_KITS:
-                        self.kit_current,_,_ = self.packet_handler.read4ByteTxRx(self.port, self.GEAR, 132)
+                        self.kit_current, _, _ = self.packet_handler.read4ByteTxRx(
+                            self.port, self.GEAR, 132)
                         self.kit_target = (self.kit_current + 2*455)
                         self.state = self.TWO_KITS
 
@@ -196,11 +209,11 @@ class motor(Node):
         if self.state == self.IDLE:
             self.stop()
             self.get_logger().info("Idle")
-            self.motor_ready.data =  True # Motor is ready to do other stuff
-            self.motor_ready_pub.publish(self.motor_ready)            
+            self.motor_ready.data = True  # Motor is ready to do other stuff
+            self.motor_ready_pub.publish(self.motor_ready)
         else:
-            self.motor_ready.data = False # Motor is preoccupied
-            self.motor_ready_pub.publish(motor_ready)
+            self.motor_ready.data = False  # Motor is preoccupied
+            self.motor_ready_pub.publish(self.motor_ready)
             match self.state:
                 case self.FORWARD:
                     self.get_logger().info("Forward")
@@ -221,24 +234,27 @@ class motor(Node):
                 case self.KIT:
                     self.get_logger().info("Kit")
                     if self.kit_current != self.kit_target:
-                        self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
+                        self.packet_handler.write4ByteTxRx(
+                            self.port, self.GEAR, 116, self.kit_target)
                     else:
                         self.get_logger().info("Dropping 1 kit")
                         self.state = self.IDLE
                 case self.TWO_KITS:
                     self.get_logger().info("Two kits")
                     if self.kit_current != self.kit_target:
-                        self.packet_handler.write4ByteTxRx(self.port, self.GEAR, 116, self.kit_target)
+                        self.packet_handler.write4ByteTxRx(
+                            self.port, self.GEAR, 116, self.kit_target)
                     else:
                         self.get_logger().info("Dropping 2 kits")
                         self.state = self.IDLE
                 case _:
                     self.get_logger().info("Ur a friggin brick brah")
-    
+
     def destroy_node(self):
         self.stop()
         super().destroy_node()
-        
+
+
 def main():
     rclpy.init()
     node = motor()

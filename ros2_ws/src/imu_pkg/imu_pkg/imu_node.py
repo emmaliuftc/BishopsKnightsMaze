@@ -16,11 +16,13 @@ from adafruit_bno08x.i2c import BNO08X_I2C
 import adafruit_vl53l0x
 import adafruit_tcs34725
 
+
 class imu(Node):
     def __init__(self):
         super().__init__("imu_node")
-    
-        self.i2c = busio.I2C(board.SCL, board.SDA, frequency=400000) # 100000 ?
+
+        self.i2c = busio.I2C(board.SCL, board.SDA,
+                             frequency=400000)  # 100000 ?
         self.tca = adafruit_tca9548a.TCA9548A(self.i2c)
 
         for channel in range(8):
@@ -35,7 +37,6 @@ class imu(Node):
         self.bno.enable_feature(BNO_REPORT_GYROSCOPE)
         self.bno.enable_feature(BNO_REPORT_MAGNETOMETER)
         self.bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
-        
 
         self.vlleft = adafruit_vl53l0x.VL53L0X(self.tca[2])
         self.vlfront = adafruit_vl53l0x.VL53L0X(self.tca[3])
@@ -43,27 +44,46 @@ class imu(Node):
 
         self.color = adafruit_tcs34725.TCS34725(self.tca[5])
 
-        self.publisher_ = self.create_publisher(String, "imu_topic",10)
-        self.gyro_publisher_ = self.create_publisher(Float64MultiArray, "gyro_topic",10)
+        self.publisher_ = self.create_publisher(String, "imu_topic", 10)
+        self.gyro_publisher_ = self.create_publisher(
+            Float64MultiArray, "gyro_topic", 10)
         self.timer = self.create_timer(0.5, self.timer_callback)
         start_time = time.time()
         angle = [0, 0, 0]
+
         while True:
+            dist_l = self.vlleft.range
+            dist_f = self.vlfront.range
+            dist_r = self.vlright.range
+            r, g, b, c = self.color.color_raw
+
+            # Can use ColorRGBA() perhaps?
+            # Maybe do some extra processing here
+            # Check screenshots
+
+            # Publish distance sensor and color sensor info
+
+            msg = String()
+            msg.data = f"{dist_l}:{dist_f}:{dist_r}:{r}:{g}:{b}:{c}"
+            self.publisher_.publish(msg)
+            self.get_logger().info(
+                "Publishing: imu data [distl,distf,distr,r,g,b,c]")
+
+            # Publish gyro data
+
             gyro_x, gyro_y, gyro_z = self.bno.gyro
             gyro = [gyro_x, gyro_y, gyro_z]
             dt = time.time() - start_time
-            dg = [g * dt * 180 / math.pi for g in gyro] # 
-            angle = [x+y for x, y in zip(dg,angle)]
+            dg = [g * dt * 180 / math.pi for g in gyro]
+            angle = [x+y for x, y in zip(dg, angle)]
             msg = Float64MultiArray()
-            msg.data = angle       
+            msg.data = angle
             self.gyro_publisher_.publish(msg)
             start_time = time.time()
-            
-
 
     def timer_callback(self):
         accel_x, accel_y, accel_z = self.bno.acceleration
-        
+
         dist_l = self.vlleft.range
         dist_f = self.vlfront.range
         dist_r = self.vlright.range
@@ -76,12 +96,10 @@ class imu(Node):
 
         msg = String()
         msg.data = f"{accel_x}, {accel_y}, {accel_z}, DIST LEFT: {dist_l}, FRONT: {dist_f} RIGHT: {dist_r}, colors: {r}, {g}, {b}, {c}"
-        
+
         self.publisher_.publish(msg)
         self.get_logger().info("Publishing: imu data")
 
-
-        
 
 def main():
     rclpy.init()
