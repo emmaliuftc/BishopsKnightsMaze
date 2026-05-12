@@ -53,7 +53,7 @@ class Control(Node):
         self.hdg = 0
         self.pos = [0, 0]
         self.tiles = {}
-        self.target_hdg
+        self.target_hdg = 0
 
         self.button_subscription = self.create_subscription(
             Bool, "button_topic", self.button_callback, 10)
@@ -155,18 +155,33 @@ class Control(Node):
     def execute_turn_to_scan(self):
         self.get_logger().info(f"turning to scan at tile at {self.pos}")
 
-        for side in self.tiles[(self.pos[0], self.pos[1])]["sides"]:
+        for side_no in range(4):
+            side = self.tiles[(self.pos[0], self.pos[1])]["sides"][side_no]
             if side == self.TILE_W:
-                ''' 
+                target_hdg = side_no * 90
+
+                deg_to_turn = (target_hdg - self.hdg) % 360
                 # To turn to a certain heading basically you need to figure out 
                 # whether you wanna turn RIGHT (4), LEFT (3), OR BIG (5)
 
                 # depending on where you wanna turn , push
                 cmd = Int32()
-                cmd.data = # PUSH IT HERE THIS IS WHERE IT SHOULD GO
+                match deg_to_turn:
+                    case 0:
+                        return
+                    case 90:
+                        cmd.data = 4
+                    case 180:
+                        cmd.data = 5
+                    case 270:
+                        cmd.data = 3
+                
+                # PUSH IT HERE THIS IS WHERE IT SHOULD GO
+                # RAHHHHHHHHHHHHHH WHAT AM I DOINGGGGGGGGGGGGGG
+
                 self.motor_publisher_(cmd)
-                time.sleep(3)
-                '''
+                # time.sleep(3)
+                
 
         self.state = self.SCANNING
 

@@ -48,17 +48,8 @@ img = sensor.snapshot()
 img.lens_corr()
 sensor.flush()
 # detect dark blobs
-def mode(data):
-    counts = {}
-    for x in data:
-        counts[x] = counts.get(x,0) + 1
-    max_count = max(counts.values())
-    for x in counts:
-        if counts[x] == max_count:
-            return x
 
 circles = img.find_circles(threshold = 5000, x_margin = 0, y_margin = 0)
-ring_colors = []
 if circles:
     print(len(circles), circles)
     lar_c = max(circles, key=lambda c:c.r())
@@ -70,19 +61,16 @@ if circles:
         ring = i+1
         print(f'ring{ring}')
         temp_radius = i*radius + radius/2
-        for j in range(90):
-            angle = math.pi/45*j
+        for j in range(8):
+            angle = math.pi/4*j
             pixel_loc = (lar_c.x() + int(temp_radius*math.cos(angle)), lar_c.y() + int(temp_radius*math.sin(angle)))
             pixel_rgb = img.get_pixel(pixel_loc[0], pixel_loc[1])
             pixel_color = closest_color(pixel_rgb[0], pixel_rgb[1], pixel_rgb[2])
             print(f"pixel:{pixel_loc}, color:{pixel_color}")
-            # img.draw_cross(pixel_loc[0], pixel_loc[1], tuple(255 - x for x in colors[pixel_color]), size=2)
+            img.draw_cross(pixel_loc[0], pixel_loc[1], tuple(255 - x for x in colors[pixel_color]), size=2)
             rings[i].append(pixel_color)
         sensor.flush()
     time.sleep(2)
-    for r in rings:
-        print(mode(r))
-        ring_colors.append(mode(r))
     sensor.flush()
 else:
     print("no circles")

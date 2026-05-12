@@ -28,18 +28,17 @@ except Exception as e:
     raise Exception('Failed to load "labels.txt", did you copy the .tflite and labels.txt file onto the mass-storage device? (' + str(e) + ')')
 
 clock = time.clock()
+psi_list = []
+phi_list = []
+omega_list = []
 while(True):
     clock.tick()
 
     img = sensor.snapshot()
-
+    img.lens_corr(strength=1.8)
     predictions_list = list(zip(labels, net.predict([img])[0].flatten().tolist()))
-    pred = ""
-    pred_conf = -1
-    for i in range(len(predictions_list)):
-        if predictions_list[i][1] > pred_conf:
-            pred_conf = predictions_list[i][1]
-            pred = predictions_list[i][0]
-    print(f"{pred}: {pred_conf}")
 
-    # print(clock.fps(), "fps")
+    for i in range(len(predictions_list)):
+        print("%s = %f" % (predictions_list[i][0], predictions_list[i][1]))
+    letter = predictions_list[i][0]
+    print(clock.fps(), "fps")

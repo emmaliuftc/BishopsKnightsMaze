@@ -129,17 +129,22 @@ def test_drive():
     x = input("D for drive, T for turn")
     if x.upper()=="D":
         drive(150)
-        x = input()
-        drive(-150)
+        # x = input()
+        # drive(-150)
     else:
         turn(150)
-        x = input()
-        turn(-150)
+        # x = input()
+        # turn(-150)
     x=input()
     stop()
 toggle = 0
 
 
+while True:
+    test_drive()
+
+
+'''
 packet_handler.write4ByteTxRx(port, GEAR, 116, 0)
 time.sleep(1)
 position, result, error = packet_handler.read4ByteTxRx(port, GEAR, 132)
@@ -148,3 +153,4 @@ x=input()
 while True:
     drop()
     x=input()
+'''
