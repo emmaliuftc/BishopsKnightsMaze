@@ -41,7 +41,7 @@ def move(tile_type):
     print(f"target: {target_rot}")
     while motors.get_positions()[0] < target_rot:
         if not going:
-            return
+            break
         if cs.get_color(color_sensor) == "Black":
             reverse(target_rot - 3725)
             return
@@ -60,47 +60,30 @@ def move(tile_type):
         pos[1] -= tiles_moved
 
 def reverse(target_rot):
+    global state
     motors.drive(-1)
-    holes.append(one_tile_in_dir(hdg))
     while motors.get_positions()[0] > target_rot:
         if not going:
             break
-
-def check_blue_red_silver():
-    global checkpoint
-    match cs.get_color(color_sensor):
-        case "Blue":
-            holes.append(pos.copy())
-            time.sleep(5)
-            return True
-        case "Red":
-            return True
-        case "Silver":
-            checkpoint = pos.copy()
-            return True
-    return False
-        
+    state = 100
 
 hdg = 0 
 pos = [0,0]
-holes = []
 tiles_visited = []
-checkpoint = [0,0]
 
 going = True
 def lop():
     global going
-    global pos
+    global state
     print(f"Going is {going}")
     if going:
         print("stopping motors")
         motors.stop()
         going = False
-        pos = checkpoint
+        state = 100
     else:
         print("resuming")
         going = True
-        hdg = (round((imu.get_angles(quat)[2]-initial_angle)/90)*90)%360
     print(f"Going is now {going}")
 
 button.button.when_pressed = lop
@@ -110,8 +93,9 @@ def angle_error(target, current):
 
 def turn(turn_deg): # clockwise / right is positive
     print(f"turning {turn_deg}")
+    turn_deg*=-1
     global hdg
-    target = (initial_angle+hdg-turn_deg) % 360 # (imu.get_angles(quat)[2]+turn_deg) % 360
+    target = (initial_angle+hdg+turn_deg) % 360 # (imu.get_angles(quat)[2]+turn_deg) % 360
     error = angle_error(target, imu.get_angles(quat)[2])
     if error < 0:
         motors.turn(1)
@@ -119,7 +103,7 @@ def turn(turn_deg): # clockwise / right is positive
         motors.turn(-1)
     while abs(angle_error(target, imu.get_angles(quat)[2])) > 8:
         if not going:
-            return
+            break
     motors.stop()
     hdg = (hdg - turn_deg) % 360
 
@@ -132,17 +116,18 @@ def scan_and_drop():
 
 def scan_tile():
     print("scanning title")
-    if pos not in tiles_visited:
-        if distance_sensors.at_wall(front):
-            scan_and_drop()
-        if distance_sensors.at_wall(left):
-            turn(-90)
-            scan_and_drop()
-            turn(90)
-        if distance_sensors.at_wall(right):
-            turn(90)
-            scan_and_drop()
-        tiles_visited.append(pos.copy())
+    if pos in tiles_visited:
+        return
+    tiles_visited.append(pos.copy())
+    if distance_sensors.at_wall(front):
+        scan_and_drop()
+    if distance_sensors.at_wall(left):
+        turn(-90)
+        scan_and_drop()
+        turn(90)
+    if distance_sensors.at_wall(right):
+        turn(90)
+        scan_and_drop()
 
 def one_tile_in_dir(hdg):
     if hdg == 0:
@@ -152,18 +137,19 @@ def one_tile_in_dir(hdg):
     elif hdg == 180:
         return [pos[0]-1, pos[1]]
     elif hdg == 270:
-        return [pos[0], pos[1]-1]
+        return  [pos[0], pos[1]-1]
 
 def find_exit_hdg(info=0):
     options = []
-    if not distance_sensors.at_wall(front) and one_tile_in_dir(hdg) not in holes:
+    options2 = [(hdg-180)%360]
+    if not distance_sensors.at_wall(front):
         options.append(hdg)
-    if not distance_sensors.at_wall(left) and one_tile_in_dir((hdg-90)%360) not in holes:
+    if not distance_sensors.at_wall(left):
         options.append((hdg-90)%360)
-    if not distance_sensors.at_wall(right) and one_tile_in_dir((hdg-90)%360) not in holes:
+    if not distance_sensors.at_wall(right):
         options.append((hdg+90)%360)
     if len(options) == 0:
-        return (hdg-180)%360    
+        return random.choice(options2)    
     print(options)
     return random.choice(options)
 
@@ -178,57 +164,45 @@ def get_ramp_info():
                 return 12
     return 0
 
+# lop_control = threading.Event()
+# going = True
+# def button_thread():
+#     lop_control.set()
+#     global going
+#     while True:
+#         if button.is_pressed():
+#             print(f"Button pressed!")
+#             if going:
+#                 going = False
+#                 lop_control.clear()
+#                 print("LOP CONTROL cleared")
+#             else:
+#                 going = True
+#                 lop_control.set()
+#                 print("LOP CONTROL set")
+#         while button.is_pressed():
+#             pass
+        
+state = 100
 def main():
+    global state
     global going
     info = 0
     while True:
         if going:
-            # scan_tile()
-            print("scanning title")
-            special = check_blue_red_silver()
-            if pos not in tiles_visited and not special:
-                if distance_sensors.at_wall(front):
-                    scan_and_drop()
-
-                    if not going:
-                        continue
-
-                if distance_sensors.at_wall(left):
-                    turn(-90)
-
-                    if not going:
-                        continue
-
-                    scan_and_drop()
-                    turn(90)
-
-                    if not going:
-                        continue
-
-                if distance_sensors.at_wall(right):
-                    turn(90)
-                    scan_and_drop()
-
-                    if not going:
-                        continue
-
-                    turn(-90)
-
-                tiles_visited.append(pos.copy())
-
-            info = get_ramp_info()
-            target_heading = find_exit_hdg(info)
-            print(f"TARGET HEADING: {target_heading}")
-            turn(target_heading - hdg)
-
-            if not going:
-                continue
-
-            move(info)
-
-            if not going:
-                continue
-
+            match state:
+                case 100:
+                    scan_tile()
+                    info = get_ramp_info()
+                    target_heading = find_exit_hdg(info)
+                    state = 200
+                case 200:
+                    turn(target_heading - hdg)
+                    state = 300
+                case 300:
+                    move(info)
+                    state = 100
+        print(state, going)
 
 led_thread = threading.Thread(target=led.flash, args=(0.5,5,))
 
@@ -242,4 +216,6 @@ main()
 
 # thread1.start()
 # # thread2.start()
+# print(hdg, imu.get_angles(quat)[2])
+# turn(180)
 # print(hdg, imu.get_angles(quat)[2])

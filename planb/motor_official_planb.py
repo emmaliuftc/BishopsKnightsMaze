@@ -65,8 +65,8 @@ def set_op_mode():
     time.sleep(0.1)
    
 
-def drive():
-    vel = DRIVE_VEL
+def drive(v=1):
+    vel = DRIVE_VEL*v
     packet_handler.write4ByteTxRx(port, MOTOR_LB, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_LF, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_RB, 104, -vel)

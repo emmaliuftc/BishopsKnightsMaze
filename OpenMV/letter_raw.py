@@ -4,6 +4,7 @@ sensor.reset()
 sensor.set_pixformat(sensor.GRAYSCALE)
 sensor.set_framesize(sensor.QQVGA)
 sensor.skip_frames(time=2000)
+sensor.set_windowing((240, 240))
 clock = time.clock()
 
 v_list=[]
@@ -53,7 +54,7 @@ while True:
     img = sensor.snapshot()
     img.binary([(0, 90)])
 
-    blobs = img.find_blobs([(0, 50)], pixels_threshold=300, area_threshold=300, merge=True)
+    blobs = img.find_blobs([(0, 50)], pixels_threshold=1000, area_threshold=1000, merge=True)
 
     for b in blobs:
         roi = b.rect()
@@ -97,14 +98,14 @@ while True:
         hline_list.append(h_lines)
 
         avg1= sum(v_list)/len(v_list)
-        avg2= sum(c_list)/len(c_list)
+        avg2= round(sum(c_list)/len(c_list),2)
         avg3= sum(center_list)/len(center_list)
-        avg4= sum(aspect_list)/len(aspect_list)
-        avg5= sum(bottom_list)/len(bottom_list)
-        avg6= sum(area_list)/len(area_list)
-        avg7= sum(density_list)/len(density_list)
-        avg8= sum(edge_list)/len(edge_list)
-        avg9= sum(perim_list)/len(perim_list)
-        avg10= sum(hline_list)/len(hline_list)
-        omega_tensor = [avg1, avg2, avg3, avg4, avg5, avg6, avg7, avg8, avg9, avg10)
+        avg4= round(sum(aspect_list)/len(aspect_list),2)
+        avg5= round(sum(bottom_list)/len(bottom_list),2)
+        avg6= round(sum(area_list)/len(area_list),2)
+        avg7= round(sum(density_list)/len(density_list),2)
+        avg8= round(sum(edge_list)/len(edge_list),2)
+        avg9= round(sum(perim_list)/len(perim_list),2)
+        avg10= round(sum(hline_list)/len(hline_list),2)
+        print(avg1, avg2, avg3, avg4, avg5, avg6, avg7, avg8, avg9, avg10)
 
