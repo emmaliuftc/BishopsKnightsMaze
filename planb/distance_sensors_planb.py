@@ -3,7 +3,7 @@ import board
 import adafruit_tca9548a
 import math
 import adafruit_vl53l0x
-
+import time
 
 
 def setup():
@@ -15,8 +15,8 @@ def setup():
             # addresses = tca[channel].scan()
             tca[channel].unlock()
 
-    vlleft = adafruit_vl53l0x.VL53L0X(tca[2])
-    vlfront = adafruit_vl53l0x.VL53L0X(tca[3])
+    vlleft = adafruit_vl53l0x.VL53L0X(tca[3])
+    vlfront = adafruit_vl53l0x.VL53L0X(tca[2])
     vlright = adafruit_vl53l0x.VL53L0X(tca[4])
     return vlleft, vlfront, vlright
 
@@ -25,5 +25,10 @@ def get_data(vl):
     return dist
 
 def tiles_in_dir(vl):
-    dist = vl.range()
-    return int(dist/30)
+    dist = vl.range
+    if dist > 120:
+        return int((dist-120)/150)
+    return 0
+
+def at_wall(vl):
+    return vl.range < 210

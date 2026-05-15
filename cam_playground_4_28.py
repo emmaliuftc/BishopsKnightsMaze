@@ -44,6 +44,16 @@ def closest_color(r, g, b):
             closest_color_name = list_of_color_names[i]
     return closest_color_name
 
+def mode(lst):
+    counts = {}
+
+    for item in lst:
+        counts[item] = counts.get(item, 0) + 1
+
+    most_common = max(counts, key=counts.get)
+    return most_common
+
+
 img = sensor.snapshot()
 img.lens_corr()
 sensor.flush()
@@ -61,16 +71,19 @@ if circles:
         ring = i+1
         print(f'ring{ring}')
         temp_radius = i*radius + radius/2
-        for j in range(8):
-            angle = math.pi/4*j
+        for j in range(30):
+            angle = math.pi/15*j
             pixel_loc = (lar_c.x() + int(temp_radius*math.cos(angle)), lar_c.y() + int(temp_radius*math.sin(angle)))
             pixel_rgb = img.get_pixel(pixel_loc[0], pixel_loc[1])
             pixel_color = closest_color(pixel_rgb[0], pixel_rgb[1], pixel_rgb[2])
-            print(f"pixel:{pixel_loc}, color:{pixel_color}")
-            img.draw_cross(pixel_loc[0], pixel_loc[1], tuple(255 - x for x in colors[pixel_color]), size=2)
+            # print(f"pixel:{pixel_loc}, color:{pixel_color}")
+            # img.draw_cross(pixel_loc[0], pixel_loc[1], tuple(255 - x for x in colors[pixel_color]), size=2)
             rings[i].append(pixel_color)
         sensor.flush()
-    time.sleep(2)
     sensor.flush()
+    ring_colors = []
+    for ring in rings:
+        ring_colors.append(mode(ring))
+    print(ring_colors)
 else:
     print("no circles")

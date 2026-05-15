@@ -7,7 +7,7 @@ from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
     BNO_REPORT_MAGNETOMETER,
-    BNO_REPORT_ROTATION_VECTOR,
+    BNO_REPORT_ROTATION_VECTOR
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
 
@@ -22,20 +22,43 @@ def setup():
         tca[6].unlock()
 
         bno = BNO08X_I2C(tca[6])
-        bno.enable_feature(BNO_REPORT_ACCELEROMETER)
-        bno.enable_feature(BNO_REPORT_GYROSCOPE)
-        bno.enable_feature(BNO_REPORT_MAGNETOMETER)
         bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
     return bno
 
 
+def quat_to_euler(w, x, y, z):
+    # roll (x-axis)
+    roll = math.atan2(
+        2.0 * (w * x + y * z),
+        1.0 - 2.0 * (x * x + y * y)
+    )
 
-def calculate_angle(sensor, angle, start_time):
+    # pitch (y-axis)
+    pitch = math.asin(
+        2.0 * (w * y - z * x)
+    )
 
-    gyro_x, gyro_y, gyro_z = sensor.gyro
-    gyro = [gyro_x, gyro_y, gyro_z]
-    dt = time.time() - start_time
-    start_time = time.time()
-    dg = [g * dt * 180 / math.pi for g in gyro]
-    angle = [x+y for x, y in zip(dg, angle)]
-    return angle, start_time
+    # yaw (z-axis)
+    yaw = math.atan2(
+        2.0 * (w * z + x * y),
+        1.0 - 2.0 * (y * y + z * z)
+    )
+
+    return roll, pitch, yaw
+
+def get_angles(sensor):
+    x, y, z, w = sensor.quaternion
+    roll, pitch, yaw = quat_to_euler(w, x, y, z)
+
+    # convert to degrees
+    roll = math.degrees(roll)
+    pitch = math.degrees(pitch)
+    yaw = math.degrees(yaw)
+    if yaw < 0:
+        yaw += 360
+
+    return roll, pitch, yaw
+# bno = setup()
+# while True:
+#     print(get_angles(bno))
+#     time.sleep(0.1)

@@ -14,6 +14,7 @@ GEAR = 5
 motors = [MOTOR_LB, MOTOR_LF, MOTOR_RB, MOTOR_RF, GEAR]
 tires = [MOTOR_LB, MOTOR_LF, MOTOR_RB, MOTOR_RF]
 
+DRIVE_VEL = 100
 TURN_VEL = 100
 
 
@@ -65,6 +66,7 @@ def set_op_mode():
    
 
 def drive():
+    vel = DRIVE_VEL
     packet_handler.write4ByteTxRx(port, MOTOR_LB, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_LF, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_RB, 104, -vel)
@@ -80,7 +82,11 @@ def drop():
 
 
 def stop():
-    drive(0)
+    vel = 0
+    packet_handler.write4ByteTxRx(port, MOTOR_LB, 104, vel)
+    packet_handler.write4ByteTxRx(port, MOTOR_LF, 104, vel)
+    packet_handler.write4ByteTxRx(port, MOTOR_RB, 104, vel)
+    packet_handler.write4ByteTxRx(port, MOTOR_RF, 104, vel)
  
 def turn(d):
     vel = TURN_VEL * d
@@ -105,14 +111,15 @@ def get_positions():
     return positions
 
 def test_drive():
-    x = input("D for drive, T for turn")
-    if x.upper()=="D":
-        drive(150)
-        x = input()
-        drive(-150)
-    else:
-        turn(150)
-        x = input()
-        turn(-150)
+    x = input("turn")
+    start_time = time.time()
+    turn(1)
     x=input()
+    
+    end_time = time.time()
     stop()
+    print(end_time - start_time)
+
+# setup()
+# set_op_mode()
+# test_drive()

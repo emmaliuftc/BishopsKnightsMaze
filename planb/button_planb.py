@@ -2,7 +2,10 @@ import time
 from gpiozero import LED
 from gpiozero import Button
 
-button = Button(18)
+button = Button(17)
 
-def is_pressed():
-    return button.is_active
+# def is_pressed():
+#     print("hi")
+# button.when_pressed = is_pressed    
+# while True:
+#     time.sleep(0.01)

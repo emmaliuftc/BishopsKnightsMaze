@@ -6,7 +6,10 @@ import imu_planb as imu
 import led_planb as led
 import motor_official_planb as motors
 
+import threading
+
 motors.setup()
+motors.set_op_mode()
 gyro = imu.setup()
 left, front, right = distance_sensors.setup()
 
@@ -39,6 +42,7 @@ w=2
 # FUNCTIONS THAT WILL NEED UPDATING
 
 def move(tile_type):
+    print("moving")
     match tile_type:
         case 1:
             rots = 3725
@@ -48,8 +52,9 @@ def move(tile_type):
             rots = 4953
     motors.drive()
     target_rot = motors.get_positions()[0] + rots
+    print(f"target: {target_rot}")
     while motors.get_positions()[0] < target_rot:
-        pass
+        print(f"motor poses: {motors.get_positions()}")
     motors.stop()
 
     if hdg == 0:
@@ -92,6 +97,7 @@ def turn(turn_deg): # clockwise / right is positive
     hdg = round_nearest_90(imu.calculate_angle(gyro))
 
 def update_map():
+    print("updating map")
     global tiles
     posx, posy = pos[0], pos[1]
     tiles[(posx, posy)]["visited"] = True
@@ -147,6 +153,7 @@ def scan_and_drop():
         motors.drop()
 
 def scan_tile():
+    print("scanning title")
     if distance_sensors.tiles_in_dir(front) == 0:
         scan_and_drop()
     if distance_sensors.tiles_in_dir(left) == 0:
@@ -170,8 +177,10 @@ def score(tilex, tiley):
 angle = [0, 0, 0]
 def imu_thread():
     global angle
-    start_time = time.time()
-    angle, start_time = imu.calculate_angle(gyro, angle, start_time)[0]
+    while True:
+        # print(f"angle: {angle}")
+        start_time = time.time()
+        angle, start_time = imu.calculate_angle(gyro, angle, start_time)
 
 
 def find_exit_hdg():
@@ -188,10 +197,32 @@ def find_exit_hdg():
     return target_hdg
 
 def main_thread():
-    move()
-    global tiles
-    if not tiles[tuple(pos)]["visited"]:
+    try:
+        global tiles
         update_map()
-        scan_tile()
-    target_hdg = find_exit_hdg()
-    turn(target_hdg - hdg)
+        print("doing the main thing")
+        move(1)
+        print(tiles)
+        
+        if not tiles[tuple(pos)]["visited"]:
+            update_map()
+            print(tiles)
+            scan_tile()
+        target_hdg = find_exit_hdg()
+        turn(target_hdg - hdg)
+    except Exception as e:
+        print(e)
+
+main_thread()
+
+# threads=[]
+# t = threading.Thread(target=imu_thread)
+# threads.append(t)
+# t = threading.Thread(target=main_thread)
+# threads.append(t)
+
+# for t in threads:
+#     t.start()
+
+# for t in threads:
+#     t.join()

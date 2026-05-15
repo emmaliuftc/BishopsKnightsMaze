@@ -136,3 +136,7 @@ def test_drive():
         turn(-150)
     x=input()
     stop()
+
+setup()
+set_op_mode()
+test_drive()
