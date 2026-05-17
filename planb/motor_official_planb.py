@@ -66,7 +66,7 @@ def set_op_mode():
    
 
 def drive(v=1):
-    vel = DRIVE_VEL*v
+    vel = int(DRIVE_VEL*v)
     packet_handler.write4ByteTxRx(port, MOTOR_LB, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_LF, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_RB, 104, -vel)
@@ -89,7 +89,7 @@ def stop():
     packet_handler.write4ByteTxRx(port, MOTOR_RF, 104, vel)
  
 def turn(d):
-    vel = TURN_VEL * d
+    vel = int(TURN_VEL * d)
     packet_handler.write4ByteTxRx(port, MOTOR_LB, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_LF, 104, vel)
     packet_handler.write4ByteTxRx(port, MOTOR_RB, 104, vel)

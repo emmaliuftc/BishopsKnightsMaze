@@ -32,7 +32,8 @@ def setup():
     color = adafruit_tcs34725.TCS34725(tca[5])
     return color
 
-def get_color(sensor):        
+def get_color(sensor):   
+    return "White"     
     r, g, b = sensor.color_rgb_bytes
     l = sensor.lux
     color = closest_color(r, g, b, l)

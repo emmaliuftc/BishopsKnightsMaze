@@ -47,20 +47,29 @@ def quat_to_euler(w, x, y, z):
     return roll, pitch, yaw
 
 def get_angles(sensor):
-    x, y, z, w = sensor.quaternion
-    roll, pitch, yaw = quat_to_euler(w, x, y, z)
 
-    # convert to degrees
-    roll = math.degrees(roll)
-    pitch = math.degrees(pitch)
-    yaw = math.degrees(yaw)
-    if yaw < 0:
-        yaw += 360
 
+    ok = False
+    while not ok:
+        try:
+            x, y, z, w = sensor.quaternion
+            roll, pitch, yaw = quat_to_euler(w, x, y, z)
+
+            # convert to degrees
+            roll = math.degrees(roll)
+            pitch = math.degrees(pitch)
+            yaw = 0-math.degrees(yaw)
+            if yaw < 0:
+                yaw += 360
+            ok = True
+        except OSError:
+            ok = False
     return roll, pitch, yaw
-
-
-# bno = setup()
+    
+# a = setup()
+# pvs = a.quaternion
 # while True:
-#     print(get_angles(bno))
-#     time.sleep(0.1)
+#     q = a.quaternion
+#     print([q[i] - pvs[i] for i in range(4)])
+#     pvs = a.quaternion
+#     time.sleep(1)

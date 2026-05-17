@@ -10,4 +10,3 @@ def flash(sec, times):
         time.sleep(sec)
         led1.off()
         time.sleep(sec)
-flash(1,5)

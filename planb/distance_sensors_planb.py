@@ -21,8 +21,14 @@ def setup():
     return vlleft, vlfront, vlright
 
 def get_data(vl):
-    dist = vl.range
-    return dist
+    ok = False
+    while not ok:
+        try:
+            ret_value = vl.range
+            ok = True
+        except OSError:
+            ok = False
+    return ret_value
 
 def tiles_in_dir(vl):
     dist = vl.range
@@ -31,4 +37,15 @@ def tiles_in_dir(vl):
     return 0
 
 def at_wall(vl):
-    return vl.range < 210
+    ok = False
+    while not ok:
+        try:
+            ret_value = (vl.range < 310)
+            ok = True
+        except OSError:
+            ok = False
+    return ret_value
+
+# left, front, right = setup()
+# while True:
+#     print(get_data(left), get_data(front), get_data(right))

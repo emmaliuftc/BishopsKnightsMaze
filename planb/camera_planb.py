@@ -1,7 +1,6 @@
 import serial
 
 def get_data():
-    return 2
     try:
         ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
         # print("Successfully connected to can on /dev/ttyACM0")
@@ -13,5 +12,24 @@ def get_data():
             # print(f"Failed to connect to cam: {e}")
             return
     line = ser.readline().decode('utf-8').strip()
-    # return line
-    return line
+    match line:
+        case "PHI":
+            print("phi")
+            return 2 
+        case "OMEGA":
+            print("omegalul")
+            return 0
+        case "PSI":
+            print("psi")
+            return 1
+        case 0:
+            print("target be zeroing")
+            return 0
+        case 1:
+            print("target 1")
+            return 1
+        case 2:
+            print("target too!")
+            return 2
+        case _:
+            return 
